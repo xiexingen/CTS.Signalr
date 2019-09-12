@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace Core.Signalr.Template.Web
@@ -22,18 +23,34 @@ namespace Core.Signalr.Template.Web
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(options => options.AddPolicy("CorsPolicy", builder =>
+            {
+                builder.SetIsOriginAllowed(origin => true)
+                       .AllowAnyHeader()
+                       .AllowAnyMethod()
+                       .AllowCredentials();
+            }));
+
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
             // 添加Signalr
             services.AddSignalR()
                 // 使用redis做地板 支持横向扩展 Scale-out
-                .AddRedis(Configuration.GetValue<string>("App:RedisCache:ConnectionString"), option=>{
-                    option.Configuration=new ConfigurationOptions()
+                .AddRedis(Configuration.GetValue<string>("App:RedisCache:ConnectionString"), option =>
+                {
+                    option.Configuration = new ConfigurationOptions()
                     {
-                        DefaultDatabase= Configuration.GetValue<int>("App:RedisCache:DatabaseId")
-                    }; 
+                        DefaultDatabase = Configuration.GetValue<int>("App:RedisCache:DatabaseId")
+                    };
                 })
                 // 支持MessagePack
-                .AddMessagePackProtocol();
+                .AddMessagePackProtocol(option =>
+                {
+                    option.FormatterResolvers = new List<MessagePack.IFormatterResolver>()
+                    {
+                        MessagePack.Resolvers.DynamicGenericResolver.Instance,
+                        MessagePack.Resolvers.StandardResolver.Instance
+                    };
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -50,12 +67,14 @@ namespace Core.Signalr.Template.Web
             }
 
             app.UseHttpsRedirection();
+            app.UseCors("CorsPolicy");
             app.UseStaticFiles();
             app.UseSignalR(route =>
             {
-                route.MapHub<ServerNotifyHub>("/server-notify");
+                route.MapHub<NotifyHub>("/notify-hub");
             });
-            app.UseMvc(config => {
+            app.UseMvc(config =>
+            {
                 config.MapRoute("default", "{controller=Home}/{action=Index}/{id?}");
             });
         }

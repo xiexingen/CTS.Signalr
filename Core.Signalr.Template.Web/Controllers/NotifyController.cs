@@ -12,17 +12,18 @@ namespace Core.Signalr.Template.Web.Controllers
     [ApiController]
     public class NotifyController : ControllerBase
     {
-        private readonly IHubContext<ServerNotifyHub> _serverNotifyHub;
+        private readonly IHubContext<NotifyHub> _notifyHub;
 
-        public NotifyController(IHubContext<ServerNotifyHub> serverNotifyHub)
+        public NotifyController(IHubContext<NotifyHub> notifyHub)
         {
-            _serverNotifyHub = serverNotifyHub;
+            _notifyHub = notifyHub;
         }
 
         // POST api/notify
         [HttpPost]
         public void Post([FromBody] string value)
         {
+
             
         }
     }

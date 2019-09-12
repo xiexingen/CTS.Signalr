@@ -4,7 +4,38 @@
     ViewData["Title"] = "Home page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container">
+    <div class="card">
+        <div class="card-body">
+            sda
+        </div>
+    </div>
 </div>
+@section Scripts{
+    <script>
+        $(function () {
+
+            initSignalr();
+
+            function initSignalr() {
+                let connection = new signalR.HubConnectionBuilder()
+                    .configureLogging(signalR.LogLevel.Debug)
+                    .withUrl('https://localhost:50000/notify-hub')
+                    .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+                    .build();
+
+                connection.on('notify', function (obj) {
+                    debugger;
+                })
+
+                connection.onclose(function (err) {
+                    console.log('onClose', err);
+                })
+
+                connection.start().catch(function (error) {
+                    console.log(error.toString());
+                })
+            }
+        })
+    </script>
+}

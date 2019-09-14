@@ -5,37 +5,102 @@
 }
 
 <div class="container">
-    <div class="card">
-        <div class="card-body">
-            sda
+    <div class="row">&nbsp;</div>
+    <div class="row">
+        <div class="col-2">User</div>
+        <div class="col-4"><input type="text" id="userInput" /></div>
+    </div>
+    <div class="row">
+        <div class="col-2">Message</div>
+        <div class="col-4"><input type="text" id="messageInput" /></div>
+    </div>
+    <div class="row">&nbsp;</div>
+    <div class="row">
+        <div class="col-6">
+            <input type="button" id="sendButton" value="Send Message" />
         </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12">
+        <hr />
+    </div>
+</div>
+<div class="row">
+    <div class="col-6">
+        <ul id="messagesList"></ul>
+    </div>
+</div>
+</div>
+<div class="row">
+    <div class="col-12">
+        <hr />
+    </div>
+</div>
+<div class="row">
+    <div class="col-6">
+        <ul id="messagesList"></ul>
     </div>
 </div>
 @section Scripts{
     <script>
         $(function () {
 
-            initSignalr();
+            let signalrObj = initSignalr();
 
-            function initSignalr() {
+            function initSignalr(option) {
                 let connection = new signalR.HubConnectionBuilder()
                     .configureLogging(signalR.LogLevel.Debug)
                     .withUrl('https://localhost:50000/notify-hub')
-                    .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+                    // .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+                    .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
                     .build();
 
+                document.getElementById("sendButton").disabled = true;
+
                 connection.on('notify', function (obj) {
-                    debugger;
+                    console.info('notify..........');
                 })
+
+                connection.on('ReceiveMessage', function (user, message) {
+                    console.info('ReceiveMessage..........');
+                    var msg = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    var encodedMsg = user + " says " + msg;
+                    var li = document.createElement("li");
+                    li.textContent = encodedMsg;
+                    document.getElementById("messagesList").appendChild(li);
+                })
+
+                connection.onreconnecting((error) => {
+                    console.assert(connection.state === signalR.HubConnectionState.Reconnecting);
+
+                    document.getElementById("messageInput").disabled = true;
+
+                    const li = document.createElement("li");
+                    li.textContent = `Connection lost due to error "${error}". Reconnecting.`;
+                    document.getElementById("messagesList").appendChild(li);
+                });
 
                 connection.onclose(function (err) {
                     console.log('onClose', err);
                 })
 
-                connection.start().catch(function (error) {
+                connection.start().then(function () {
+                    document.getElementById("sendButton").disabled = false;
+                }).catch(function (error) {
                     console.log(error.toString());
                 })
+                return connection;
             }
+
+            document.getElementById("sendButton").addEventListener("click", function (event) {
+                var user = document.getElementById("userInput").value;
+                var message = document.getElementById("messageInput").value;
+                signalrObj.invoke("SendMessage", user, message).catch(function (err) {
+                    return console.error(err.toString());
+                });
+                event.preventDefault();
+            });
         })
     </script>
 }

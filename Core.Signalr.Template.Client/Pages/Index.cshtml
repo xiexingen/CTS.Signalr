@@ -46,10 +46,12 @@
     <script>
         $(function () {
 
-            let signalrObj = initSignalr();
+            initSignalr();
+
+            initSignalrDemo();
 
             function initSignalr(option) {
-                let connection = new signalR.HubConnectionBuilder()
+                var connection = new signalR.HubConnectionBuilder()
                     .configureLogging(signalR.LogLevel.Debug)
                     .withUrl('https://localhost:50000/notify-hub')
                     // .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
@@ -71,18 +73,63 @@
                     document.getElementById("messagesList").appendChild(li);
                 })
 
-                connection.onreconnecting((error) => {
+                connection.onreconnecting(function(error){
                     console.assert(connection.state === signalR.HubConnectionState.Reconnecting);
 
                     document.getElementById("messageInput").disabled = true;
 
-                    const li = document.createElement("li");
-                    li.textContent = `Connection lost due to error "${error}". Reconnecting.`;
+                    var li = document.createElement("li");
+                    li.textContent = 'Connection lost due to error '+error+'. Reconnecting.';
                     document.getElementById("messagesList").appendChild(li);
                 });
 
                 connection.onclose(function (err) {
                     console.log('onClose', err);
+                })
+
+                connection.start().then(function () {
+                    document.getElementById("sendButton").disabled = false;
+                }).catch(function (error) {
+                    console.log(error.toString());
+                })
+                return connection;
+            }
+
+            function initSignalrDemo(option) {
+                var connection = new signalR.HubConnectionBuilder()
+                    .configureLogging(signalR.LogLevel.Debug)
+                    .withUrl('https://localhost:50000/demo-hub')
+                    // .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+                    .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+                    .build();
+
+                document.getElementById("sendButton").disabled = true;
+
+                connection.on('notify', function (obj) {
+                    console.info('notify demo..........');
+                })
+
+                connection.on('ReceiveMessage', function (user, message) {
+                    console.info('ReceiveMessage demo..........');
+                    var msg = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    var encodedMsg = user + " says " + msg;
+                    var li = document.createElement("li");
+                    li.textContent = encodedMsg;
+                    document.getElementById("messagesList").appendChild(li);
+                })
+
+                connection.onreconnecting(function(error){
+                    console.assert(connection.state === signalR.HubConnectionState.Reconnecting);
+
+                    document.getElementById("messageInput").disabled = true;
+
+                    var li = document.createElement("li");
+                    li.textContent = 'Connection lost due to error '+error+'. Reconnecting.';
+                    document.getElementById("messagesList").appendChild(li);
+                });
+
+                connection.onclose(function (err) {
+                    console.log('onClose demo', err);
                 })
 
                 connection.start().then(function () {

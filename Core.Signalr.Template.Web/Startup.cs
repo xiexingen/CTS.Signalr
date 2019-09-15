@@ -115,6 +115,7 @@ namespace Core.Signalr.Template.Web
                     pattern: "{controller=Home}/{action=Index}/{id?}");
 
                 endpoints.MapHub<NotifyHub>("/notify-hub");
+                endpoints.MapHub<DemoHub>("/demo-hub");
             });
         }
     }

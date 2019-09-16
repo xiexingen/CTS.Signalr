@@ -58,34 +58,34 @@ namespace Core.Signalr.Template.Web
                         MessagePack.Resolvers.DynamicGenericResolver.Instance,
                         MessagePack.Resolvers.StandardResolver.Instance
                     };
-                });
-            //// 使用redis做底板 支持横向扩展 Scale-out
-            //.AddStackExchangeRedis(Configuration.GetValue<string>("App:RedisCache:ConnectionString"), o =>
-            // {
-            //     o.ConnectionFactory = async writer =>
-            //     {
-            //         var config = new ConfigurationOptions
-            //         {
-            //             AbortOnConnectFail = false,
-            //            // Password = "changeme"
-            //        };
-            //        //config.EndPoints.Add(IPAddress.Loopback, 0);
-            //        //config.SetDefaultPorts();
-            //        config.DefaultDatabase = Configuration.GetValue<int>("App:RedisCache:DatabaseId");
-            //         var connection = await ConnectionMultiplexer.ConnectAsync(config, writer);
-            //         connection.ConnectionFailed += (_, e) =>
-            //         {
-            //             Console.WriteLine("Connection to Redis failed");
-            //         };
+                })
+            // 使用redis做底板 支持横向扩展 Scale-out
+            .AddStackExchangeRedis(o =>
+             {
+                 o.ConnectionFactory = async writer =>
+                 {
+                     var config = new ConfigurationOptions
+                     {
+                         AbortOnConnectFail = false,
+                         // Password = "changeme"
+                     };
+                     //config.EndPoints.Add(IPAddress.Loopback, 0);
+                     //config.SetDefaultPorts();
+                     config.DefaultDatabase = Configuration.GetValue<int>("App:RedisCache:DatabaseId");
+                     var connection = await ConnectionMultiplexer.ConnectAsync(Configuration.GetValue<string>("App:RedisCache:ConnectionString"), writer);
+                     connection.ConnectionFailed += (_, e) =>
+                     {
+                         Console.WriteLine("Connection to Redis failed");
+                     };
 
-            //         if (!connection.IsConnected)
-            //         {
-            //             Console.WriteLine("Did not connect to Redis.");
-            //         }
+                     if (!connection.IsConnected)
+                     {
+                         Console.WriteLine("Did not connect to Redis.");
+                     }
 
-            //         return connection;
-            //     };
-            // });
+                     return connection;
+                 };
+             });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

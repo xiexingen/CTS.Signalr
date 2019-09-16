@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace Core.Signalr.Template.Client.Pages
 {
-    public class IndexModel : PageModel
+    public class WebWorkModel : PageModel
     {
         public void OnGet()
         {

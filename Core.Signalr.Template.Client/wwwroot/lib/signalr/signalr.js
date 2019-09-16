@@ -1378,7 +1378,7 @@ g = (function() {
 
 try {
 	// This works if eval is allowed (see CSP)
-	g = g || Function("return this")() || (1, eval)("this");
+	g = g || new Function("return this")();
 } catch (e) {
 	// This works if the window reference is available
 	if (typeof window === "object") g = window;
@@ -1445,7 +1445,7 @@ __webpack_require__.r(__webpack_exports__);
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 // Version token that will be replaced by the prepack command
 /** The version of the SignalR client. */
-var VERSION = "3.0.0-preview6.19307.2";
+var VERSION = "3.0.0-preview9.19424.4";
 
 
 
@@ -1483,7 +1483,7 @@ var __extends = (undefined && undefined.__extends) || (function () {
 /** Error thrown when an HTTP request fails. */
 var HttpError = /** @class */ (function (_super) {
     __extends(HttpError, _super);
-    /** Constructs a new instance of {@link @aspnet/signalr.HttpError}.
+    /** Constructs a new instance of {@link @microsoft/signalr.HttpError}.
      *
      * @param {string} errorMessage A descriptive error message.
      * @param {number} statusCode The HTTP status code represented by this error.
@@ -1505,7 +1505,7 @@ var HttpError = /** @class */ (function (_super) {
 /** Error thrown when a timeout elapses. */
 var TimeoutError = /** @class */ (function (_super) {
     __extends(TimeoutError, _super);
-    /** Constructs a new instance of {@link @aspnet/signalr.TimeoutError}.
+    /** Constructs a new instance of {@link @microsoft/signalr.TimeoutError}.
      *
      * @param {string} errorMessage A descriptive error message.
      */
@@ -1631,10 +1631,10 @@ var __extends = (undefined && undefined.__extends) || (function () {
 
 
 
-/** Default implementation of {@link @aspnet/signalr.HttpClient}. */
+/** Default implementation of {@link @microsoft/signalr.HttpClient}. */
 var DefaultHttpClient = /** @class */ (function (_super) {
     __extends(DefaultHttpClient, _super);
-    /** Creates a new instance of the {@link @aspnet/signalr.DefaultHttpClient}, using the provided {@link @aspnet/signalr.ILogger} to log messages. */
+    /** Creates a new instance of the {@link @microsoft/signalr.DefaultHttpClient}, using the provided {@link @microsoft/signalr.ILogger} to log messages. */
     function DefaultHttpClient(logger) {
         var _this = _super.call(this) || this;
         if (typeof XMLHttpRequest !== "undefined") {
@@ -1954,6 +1954,28 @@ var HubConnection = /** @class */ (function () {
          */
         get: function () {
             return this.connection ? (this.connection.connectionId || null) : null;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(HubConnection.prototype, "baseUrl", {
+        /** Indicates the url of the {@link HubConnection} to the server. */
+        get: function () {
+            return this.connection.baseUrl || "";
+        },
+        /**
+         * Sets a new url for the HubConnection. Note that the url can only be changed when the connection is in either the Disconnected or
+         * Reconnecting states.
+         * @param {string} url The url to connect to.
+         */
+        set: function (url) {
+            if (this.connectionState !== HubConnectionState.Disconnected && this.connectionState !== HubConnectionState.Reconnecting) {
+                throw new Error("The HubConnection must be in the Disconnected or Reconnecting state to change the url.");
+            }
+            if (!url) {
+                throw new Error("The HubConnection url must be a valid url.");
+            }
+            this.connection.baseUrl = url;
         },
         enumerable: true,
         configurable: true
@@ -2496,16 +2518,17 @@ var HubConnection = /** @class */ (function () {
     };
     HubConnection.prototype.reconnect = function (error) {
         return __awaiter(this, void 0, void 0, function () {
-            var reconnectStartTime, previousReconnectAttempts, nextRetryDelay, e_4;
+            var reconnectStartTime, previousReconnectAttempts, retryError, nextRetryDelay, e_4;
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         reconnectStartTime = Date.now();
                         previousReconnectAttempts = 0;
-                        nextRetryDelay = this.getNextRetryDelay(previousReconnectAttempts++, 0);
+                        retryError = error !== undefined ? error : new Error("Attempting to reconnect due to a unknown error.");
+                        nextRetryDelay = this.getNextRetryDelay(previousReconnectAttempts++, 0, retryError);
                         if (nextRetryDelay === null) {
-                            this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_2__["LogLevel"].Debug, "Connection not reconnecting because the IReconnectPolicy returned null on the first reconnect attempt.");
+                            this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_2__["LogLevel"].Debug, "Connection not reconnecting because the IRetryPolicy returned null on the first reconnect attempt.");
                             this.completeClose(error);
                             return [2 /*return*/];
                         }
@@ -2567,10 +2590,10 @@ var HubConnection = /** @class */ (function () {
                             this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_2__["LogLevel"].Debug, "Connection left the reconnecting state during reconnect attempt. Done reconnecting.");
                             return [2 /*return*/];
                         }
+                        retryError = e_4 instanceof Error ? e_4 : new Error(e_4.toString());
+                        nextRetryDelay = this.getNextRetryDelay(previousReconnectAttempts++, Date.now() - reconnectStartTime, retryError);
                         return [3 /*break*/, 6];
-                    case 6:
-                        nextRetryDelay = this.getNextRetryDelay(previousReconnectAttempts++, Date.now() - reconnectStartTime);
-                        return [3 /*break*/, 1];
+                    case 6: return [3 /*break*/, 1];
                     case 7:
                         this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_2__["LogLevel"].Information, "Reconnect retries have been exhausted after " + (Date.now() - reconnectStartTime) + " ms and " + previousReconnectAttempts + " failed attempts. Connection disconnecting.");
                         this.completeClose();
@@ -2579,12 +2602,16 @@ var HubConnection = /** @class */ (function () {
             });
         });
     };
-    HubConnection.prototype.getNextRetryDelay = function (previousRetryCount, elapsedMilliseconds) {
+    HubConnection.prototype.getNextRetryDelay = function (previousRetryCount, elapsedMilliseconds, retryReason) {
         try {
-            return this.reconnectPolicy.nextRetryDelayInMilliseconds(previousRetryCount, elapsedMilliseconds);
+            return this.reconnectPolicy.nextRetryDelayInMilliseconds({
+                elapsedMilliseconds: elapsedMilliseconds,
+                previousRetryCount: previousRetryCount,
+                retryReason: retryReason,
+            });
         }
         catch (e) {
-            this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_2__["LogLevel"].Error, "IReconnectPolicy.nextRetryDelayInMilliseconds(" + previousRetryCount + ", " + elapsedMilliseconds + ") threw error '" + e + "'.");
+            this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_2__["LogLevel"].Error, "IRetryPolicy.nextRetryDelayInMilliseconds(" + previousRetryCount + ", " + elapsedMilliseconds + ") threw error '" + e + "'.");
             return null;
         }
     };
@@ -2685,7 +2712,7 @@ var HubConnection = /** @class */ (function () {
     };
     HubConnection.prototype.isObservable = function (arg) {
         // This allows other stream implementations to just work (like rxjs)
-        return arg.subscribe && typeof arg.subscribe === "function";
+        return arg && arg.subscribe && typeof arg.subscribe === "function";
     };
     HubConnection.prototype.createStreamInvocation = function (methodName, args, streamIds) {
         var invocationId = this.invocationId;
@@ -3079,7 +3106,7 @@ var NullLogger = /** @class */ (function () {
     // tslint:disable-next-line
     NullLogger.prototype.log = function (_logLevel, _message) {
     };
-    /** The singleton instance of the {@link @aspnet/signalr.NullLogger}. */
+    /** The singleton instance of the {@link @microsoft/signalr.NullLogger}. */
     NullLogger.instance = new NullLogger();
     return NullLogger;
 }());
@@ -3098,19 +3125,19 @@ __webpack_require__.r(__webpack_exports__);
 /** Defines the type of a Hub Message. */
 var MessageType;
 (function (MessageType) {
-    /** Indicates the message is an Invocation message and implements the {@link @aspnet/signalr.InvocationMessage} interface. */
+    /** Indicates the message is an Invocation message and implements the {@link @microsoft/signalr.InvocationMessage} interface. */
     MessageType[MessageType["Invocation"] = 1] = "Invocation";
-    /** Indicates the message is a StreamItem message and implements the {@link @aspnet/signalr.StreamItemMessage} interface. */
+    /** Indicates the message is a StreamItem message and implements the {@link @microsoft/signalr.StreamItemMessage} interface. */
     MessageType[MessageType["StreamItem"] = 2] = "StreamItem";
-    /** Indicates the message is a Completion message and implements the {@link @aspnet/signalr.CompletionMessage} interface. */
+    /** Indicates the message is a Completion message and implements the {@link @microsoft/signalr.CompletionMessage} interface. */
     MessageType[MessageType["Completion"] = 3] = "Completion";
-    /** Indicates the message is a Stream Invocation message and implements the {@link @aspnet/signalr.StreamInvocationMessage} interface. */
+    /** Indicates the message is a Stream Invocation message and implements the {@link @microsoft/signalr.StreamInvocationMessage} interface. */
     MessageType[MessageType["StreamInvocation"] = 4] = "StreamInvocation";
-    /** Indicates the message is a Cancel Invocation message and implements the {@link @aspnet/signalr.CancelInvocationMessage} interface. */
+    /** Indicates the message is a Cancel Invocation message and implements the {@link @microsoft/signalr.CancelInvocationMessage} interface. */
     MessageType[MessageType["CancelInvocation"] = 5] = "CancelInvocation";
-    /** Indicates the message is a Ping message and implements the {@link @aspnet/signalr.PingMessage} interface. */
+    /** Indicates the message is a Ping message and implements the {@link @microsoft/signalr.PingMessage} interface. */
     MessageType[MessageType["Ping"] = 6] = "Ping";
-    /** Indicates the message is a Close message and implements the {@link @aspnet/signalr.CloseMessage} interface. */
+    /** Indicates the message is a Close message and implements the {@link @microsoft/signalr.CloseMessage} interface. */
     MessageType[MessageType["Close"] = 7] = "Close";
 })(MessageType || (MessageType = {}));
 
@@ -3217,7 +3244,7 @@ function parseLogLevel(name) {
         throw new Error("Unknown log level: " + name);
     }
 }
-/** A builder for configuring {@link @aspnet/signalr.HubConnection} instances. */
+/** A builder for configuring {@link @microsoft/signalr.HubConnection} instances. */
 var HubConnectionBuilder = /** @class */ (function () {
     function HubConnectionBuilder() {
     }
@@ -3248,9 +3275,9 @@ var HubConnectionBuilder = /** @class */ (function () {
         }
         return this;
     };
-    /** Configures the {@link @aspnet/signalr.HubConnection} to use the specified Hub Protocol.
+    /** Configures the {@link @microsoft/signalr.HubConnection} to use the specified Hub Protocol.
      *
-     * @param {IHubProtocol} protocol The {@link @aspnet/signalr.IHubProtocol} implementation to use.
+     * @param {IHubProtocol} protocol The {@link @microsoft/signalr.IHubProtocol} implementation to use.
      */
     HubConnectionBuilder.prototype.withHubProtocol = function (protocol) {
         _Utils__WEBPACK_IMPORTED_MODULE_6__["Arg"].isRequired(protocol, "protocol");
@@ -3272,9 +3299,9 @@ var HubConnectionBuilder = /** @class */ (function () {
         }
         return this;
     };
-    /** Creates a {@link @aspnet/signalr.HubConnection} from the configuration options specified in this builder.
+    /** Creates a {@link @microsoft/signalr.HubConnection} from the configuration options specified in this builder.
      *
-     * @returns {HubConnection} The configured {@link @aspnet/signalr.HubConnection}.
+     * @returns {HubConnection} The configured {@link @microsoft/signalr.HubConnection}.
      */
     HubConnectionBuilder.prototype.build = function () {
         // If httpConnectionOptions has a logger, use it. Otherwise, override it with the one
@@ -3316,8 +3343,8 @@ var DefaultReconnectPolicy = /** @class */ (function () {
     function DefaultReconnectPolicy(retryDelays) {
         this.retryDelays = retryDelays !== undefined ? retryDelays.concat([null]) : DEFAULT_RETRY_DELAYS_IN_MILLISECONDS;
     }
-    DefaultReconnectPolicy.prototype.nextRetryDelayInMilliseconds = function (previousRetryCount) {
-        return this.retryDelays[previousRetryCount];
+    DefaultReconnectPolicy.prototype.nextRetryDelayInMilliseconds = function (retryContext) {
+        return this.retryDelays[retryContext.previousRetryCount];
     };
     return DefaultReconnectPolicy;
 }());
@@ -3331,6 +3358,7 @@ var DefaultReconnectPolicy = /** @class */ (function () {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "HttpConnection", function() { return HttpConnection; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TransportSendQueue", function() { return TransportSendQueue; });
 /* harmony import */ var _DefaultHttpClient__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6);
 /* harmony import */ var _ILogger__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(9);
 /* harmony import */ var _ITransport__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(20);
@@ -3469,8 +3497,11 @@ var HttpConnection = /** @class */ (function () {
         if (this.connectionState !== "Connected" /* Connected */) {
             return Promise.reject(new Error("Cannot send data if the connection is not in the 'Connected' State."));
         }
+        if (!this.sendQueue) {
+            this.sendQueue = new TransportSendQueue(this.transport);
+        }
         // Transport will not be null if state is connected
-        return this.transport.send(data);
+        return this.sendQueue.send(data);
     };
     HttpConnection.prototype.stop = function (error) {
         return __awaiter(this, void 0, void 0, function () {
@@ -3506,7 +3537,7 @@ var HttpConnection = /** @class */ (function () {
     };
     HttpConnection.prototype.stopInternal = function (error) {
         return __awaiter(this, void 0, void 0, function () {
-            var e_1, e_2;
+            var e_1, e_2, e_3;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -3525,35 +3556,50 @@ var HttpConnection = /** @class */ (function () {
                         e_1 = _a.sent();
                         return [3 /*break*/, 4];
                     case 4:
-                        if (!this.transport) return [3 /*break*/, 9];
+                        if (!this.sendQueue) return [3 /*break*/, 9];
                         _a.label = 5;
                     case 5:
                         _a.trys.push([5, 7, , 8]);
-                        return [4 /*yield*/, this.transport.stop()];
+                        return [4 /*yield*/, this.sendQueue.stop()];
                     case 6:
                         _a.sent();
                         return [3 /*break*/, 8];
                     case 7:
                         e_2 = _a.sent();
-                        this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Error, "HttpConnection.transport.stop() threw error '" + e_2 + "'.");
-                        this.stopConnection();
+                        this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Error, "TransportSendQueue.stop() threw error '" + e_2 + "'.");
                         return [3 /*break*/, 8];
                     case 8:
-                        this.transport = undefined;
-                        return [3 /*break*/, 10];
+                        this.sendQueue = undefined;
+                        _a.label = 9;
                     case 9:
+                        if (!this.transport) return [3 /*break*/, 14];
+                        _a.label = 10;
+                    case 10:
+                        _a.trys.push([10, 12, , 13]);
+                        return [4 /*yield*/, this.transport.stop()];
+                    case 11:
+                        _a.sent();
+                        return [3 /*break*/, 13];
+                    case 12:
+                        e_3 = _a.sent();
+                        this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Error, "HttpConnection.transport.stop() threw error '" + e_3 + "'.");
+                        this.stopConnection();
+                        return [3 /*break*/, 13];
+                    case 13:
+                        this.transport = undefined;
+                        return [3 /*break*/, 15];
+                    case 14:
                         this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Debug, "HttpConnection.transport is undefined in HttpConnection.stop() because start() failed.");
                         this.stopConnection();
-                        _a.label = 10;
-                    case 10: return [2 /*return*/];
+                        _a.label = 15;
+                    case 15: return [2 /*return*/];
                 }
             });
         });
     };
     HttpConnection.prototype.startInternal = function (transferFormat) {
         return __awaiter(this, void 0, void 0, function () {
-            var url, negotiateResponse, redirects, _loop_1, this_1, e_3;
-            var _this = this;
+            var url, negotiateResponse, redirects, _loop_1, this_1, e_4;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -3568,7 +3614,7 @@ var HttpConnection = /** @class */ (function () {
                         this.transport = this.constructTransport(_ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"].WebSockets);
                         // We should just call connect directly in this case.
                         // No fallback or negotiate in this case.
-                        return [4 /*yield*/, this.transport.connect(url, transferFormat)];
+                        return [4 /*yield*/, this.startTransport(url, transferFormat)];
                     case 2:
                         // We should just call connect directly in this case.
                         // No fallback or negotiate in this case.
@@ -3630,8 +3676,6 @@ var HttpConnection = /** @class */ (function () {
                         if (this.transport instanceof _LongPollingTransport__WEBPACK_IMPORTED_MODULE_3__["LongPollingTransport"]) {
                             this.features.inherentKeepAlive = true;
                         }
-                        this.transport.onreceive = this.onreceive;
-                        this.transport.onclose = function (e) { return _this.stopConnection(e); };
                         if (this.connectionState === "Connecting " /* Connecting */) {
                             // Ensure the connection transitions to the connected state prior to completing this.startInternalPromise.
                             // start() will handle the case when stop was called and startInternal exits still in the disconnecting state.
@@ -3640,11 +3684,11 @@ var HttpConnection = /** @class */ (function () {
                         }
                         return [3 /*break*/, 13];
                     case 12:
-                        e_3 = _a.sent();
-                        this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Error, "Failed to start the connection: " + e_3);
+                        e_4 = _a.sent();
+                        this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Error, "Failed to start the connection: " + e_4);
                         this.connectionState = "Disconnected" /* Disconnected */;
                         this.transport = undefined;
-                        return [2 /*return*/, Promise.reject(e_3)];
+                        return [2 /*return*/, Promise.reject(e_4)];
                     case 13: return [2 /*return*/];
                 }
             });
@@ -3652,7 +3696,7 @@ var HttpConnection = /** @class */ (function () {
     };
     HttpConnection.prototype.getNegotiationResponse = function (url) {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, headers, token, negotiateUrl, response, e_4;
+            var _a, headers, token, negotiateUrl, response, e_5;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -3683,9 +3727,9 @@ var HttpConnection = /** @class */ (function () {
                         }
                         return [2 /*return*/, JSON.parse(response.content)];
                     case 5:
-                        e_4 = _b.sent();
-                        this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Error, "Failed to complete negotiation with the server: " + e_4);
-                        return [2 /*return*/, Promise.reject(e_4)];
+                        e_5 = _b.sent();
+                        this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Error, "Failed to complete negotiation with the server: " + e_5);
+                        return [2 /*return*/, Promise.reject(e_5)];
                     case 6: return [2 /*return*/];
                 }
             });
@@ -3699,7 +3743,7 @@ var HttpConnection = /** @class */ (function () {
     };
     HttpConnection.prototype.createTransport = function (url, requestedTransport, negotiateResponse, requestedTransferFormat) {
         return __awaiter(this, void 0, void 0, function () {
-            var connectUrl, transportExceptions, transports, _i, transports_1, endpoint, transport, ex_1, message;
+            var connectUrl, transportExceptions, transports, _i, transports_1, endpoint, transportOrError, ex_1, ex_2, message;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -3707,7 +3751,7 @@ var HttpConnection = /** @class */ (function () {
                         if (!this.isITransport(requestedTransport)) return [3 /*break*/, 2];
                         this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Debug, "Connection was provided an instance of ITransport, using that directly.");
                         this.transport = requestedTransport;
-                        return [4 /*yield*/, this.transport.connect(connectUrl, requestedTransferFormat)];
+                        return [4 /*yield*/, this.startTransport(connectUrl, requestedTransferFormat)];
                     case 1:
                         _a.sent();
                         return [2 /*return*/];
@@ -3717,40 +3761,51 @@ var HttpConnection = /** @class */ (function () {
                         _i = 0, transports_1 = transports;
                         _a.label = 3;
                     case 3:
-                        if (!(_i < transports_1.length)) return [3 /*break*/, 11];
+                        if (!(_i < transports_1.length)) return [3 /*break*/, 13];
                         endpoint = transports_1[_i];
-                        _a.label = 4;
+                        transportOrError = this.resolveTransportOrError(endpoint, requestedTransport, requestedTransferFormat);
+                        if (!(transportOrError instanceof Error)) return [3 /*break*/, 4];
+                        // Store the error and continue, we don't want to cause a re-negotiate in these cases
+                        transportExceptions.push(endpoint.transport + " failed: " + transportOrError);
+                        return [3 /*break*/, 12];
                     case 4:
-                        _a.trys.push([4, 9, , 10]);
-                        transport = this.resolveTransport(endpoint, requestedTransport, requestedTransferFormat);
-                        if (!(typeof transport === "number")) return [3 /*break*/, 8];
-                        this.transport = this.constructTransport(transport);
-                        if (!!negotiateResponse.connectionId) return [3 /*break*/, 6];
-                        return [4 /*yield*/, this.getNegotiationResponse(url)];
+                        if (!this.isITransport(transportOrError)) return [3 /*break*/, 12];
+                        this.transport = transportOrError;
+                        if (!!negotiateResponse.connectionId) return [3 /*break*/, 9];
+                        _a.label = 5;
                     case 5:
+                        _a.trys.push([5, 7, , 8]);
+                        return [4 /*yield*/, this.getNegotiationResponse(url)];
+                    case 6:
                         negotiateResponse = _a.sent();
-                        connectUrl = this.createConnectUrl(url, negotiateResponse.connectionId);
-                        _a.label = 6;
-                    case 6: return [4 /*yield*/, this.transport.connect(connectUrl, requestedTransferFormat)];
+                        return [3 /*break*/, 8];
                     case 7:
+                        ex_1 = _a.sent();
+                        return [2 /*return*/, Promise.reject(ex_1)];
+                    case 8:
+                        connectUrl = this.createConnectUrl(url, negotiateResponse.connectionId);
+                        _a.label = 9;
+                    case 9:
+                        _a.trys.push([9, 11, , 12]);
+                        return [4 /*yield*/, this.startTransport(connectUrl, requestedTransferFormat)];
+                    case 10:
                         _a.sent();
                         return [2 /*return*/];
-                    case 8: return [3 /*break*/, 10];
-                    case 9:
-                        ex_1 = _a.sent();
-                        this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Error, "Failed to start the transport '" + endpoint.transport + "': " + ex_1);
+                    case 11:
+                        ex_2 = _a.sent();
+                        this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Error, "Failed to start the transport '" + endpoint.transport + "': " + ex_2);
                         negotiateResponse.connectionId = undefined;
-                        transportExceptions.push(endpoint.transport + " failed: " + ex_1);
+                        transportExceptions.push(endpoint.transport + " failed: " + ex_2);
                         if (this.connectionState !== "Connecting " /* Connecting */) {
                             message = "Failed to select transport before stop() was called.";
                             this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Debug, message);
                             return [2 /*return*/, Promise.reject(new Error(message))];
                         }
-                        return [3 /*break*/, 10];
-                    case 10:
+                        return [3 /*break*/, 12];
+                    case 12:
                         _i++;
                         return [3 /*break*/, 3];
-                    case 11:
+                    case 13:
                         if (transportExceptions.length > 0) {
                             return [2 /*return*/, Promise.reject(new Error("Unable to connect to the server with any of the available transports. " + transportExceptions.join(" ")))];
                         }
@@ -3777,36 +3832,47 @@ var HttpConnection = /** @class */ (function () {
                 throw new Error("Unknown transport: " + transport + ".");
         }
     };
-    HttpConnection.prototype.resolveTransport = function (endpoint, requestedTransport, requestedTransferFormat) {
+    HttpConnection.prototype.startTransport = function (url, transferFormat) {
+        var _this = this;
+        this.transport.onreceive = this.onreceive;
+        this.transport.onclose = function (e) { return _this.stopConnection(e); };
+        return this.transport.connect(url, transferFormat);
+    };
+    HttpConnection.prototype.resolveTransportOrError = function (endpoint, requestedTransport, requestedTransferFormat) {
         var transport = _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"][endpoint.transport];
         if (transport === null || transport === undefined) {
             this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Debug, "Skipping transport '" + endpoint.transport + "' because it is not supported by this client.");
+            return new Error("Skipping transport '" + endpoint.transport + "' because it is not supported by this client.");
         }
         else {
-            var transferFormats = endpoint.transferFormats.map(function (s) { return _ITransport__WEBPACK_IMPORTED_MODULE_2__["TransferFormat"][s]; });
             if (transportMatches(requestedTransport, transport)) {
+                var transferFormats = endpoint.transferFormats.map(function (s) { return _ITransport__WEBPACK_IMPORTED_MODULE_2__["TransferFormat"][s]; });
                 if (transferFormats.indexOf(requestedTransferFormat) >= 0) {
                     if ((transport === _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"].WebSockets && !this.options.WebSocket) ||
                         (transport === _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"].ServerSentEvents && !this.options.EventSource)) {
                         this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Debug, "Skipping transport '" + _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"][transport] + "' because it is not supported in your environment.'");
-                        throw new Error("'" + _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"][transport] + "' is not supported in your environment.");
+                        return new Error("'" + _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"][transport] + "' is not supported in your environment.");
                     }
                     else {
                         this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Debug, "Selecting transport '" + _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"][transport] + "'.");
-                        return transport;
+                        try {
+                            return this.constructTransport(transport);
+                        }
+                        catch (ex) {
+                            return ex;
+                        }
                     }
                 }
                 else {
                     this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Debug, "Skipping transport '" + _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"][transport] + "' because it does not support the requested transfer format '" + _ITransport__WEBPACK_IMPORTED_MODULE_2__["TransferFormat"][requestedTransferFormat] + "'.");
-                    throw new Error("'" + _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"][transport] + "' does not support " + _ITransport__WEBPACK_IMPORTED_MODULE_2__["TransferFormat"][requestedTransferFormat] + ".");
+                    return new Error("'" + _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"][transport] + "' does not support " + _ITransport__WEBPACK_IMPORTED_MODULE_2__["TransferFormat"][requestedTransferFormat] + ".");
                 }
             }
             else {
                 this.logger.log(_ILogger__WEBPACK_IMPORTED_MODULE_1__["LogLevel"].Debug, "Skipping transport '" + _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"][transport] + "' because it was disabled by the client.");
-                throw new Error("'" + _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"][transport] + "' is disabled by the client.");
+                return new Error("'" + _ITransport__WEBPACK_IMPORTED_MODULE_2__["HttpTransportType"][transport] + "' is disabled by the client.");
             }
         }
-        return null;
     };
     HttpConnection.prototype.isITransport = function (transport) {
         return transport && typeof (transport) === "object" && "connect" in transport;
@@ -3882,6 +3948,105 @@ var HttpConnection = /** @class */ (function () {
 function transportMatches(requestedTransport, actualTransport) {
     return !requestedTransport || ((actualTransport & requestedTransport) !== 0);
 }
+var TransportSendQueue = /** @class */ (function () {
+    function TransportSendQueue(transport) {
+        this.transport = transport;
+        this.buffer = [];
+        this.executing = true;
+        this.sendBufferedData = new PromiseSource();
+        this.transportResult = new PromiseSource();
+        this.sendLoopPromise = this.sendLoop();
+    }
+    TransportSendQueue.prototype.send = function (data) {
+        this.bufferData(data);
+        if (!this.transportResult) {
+            this.transportResult = new PromiseSource();
+        }
+        return this.transportResult.promise;
+    };
+    TransportSendQueue.prototype.stop = function () {
+        this.executing = false;
+        this.sendBufferedData.resolve();
+        return this.sendLoopPromise;
+    };
+    TransportSendQueue.prototype.bufferData = function (data) {
+        if (this.buffer.length && typeof (this.buffer[0]) !== typeof (data)) {
+            throw new Error("Expected data to be of type " + typeof (this.buffer) + " but was of type " + typeof (data));
+        }
+        this.buffer.push(data);
+        this.sendBufferedData.resolve();
+    };
+    TransportSendQueue.prototype.sendLoop = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var transportResult, data, error_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (false) {}
+                        return [4 /*yield*/, this.sendBufferedData.promise];
+                    case 1:
+                        _a.sent();
+                        if (!this.executing) {
+                            if (this.transportResult) {
+                                this.transportResult.reject("Connection stopped.");
+                            }
+                            return [3 /*break*/, 6];
+                        }
+                        this.sendBufferedData = new PromiseSource();
+                        transportResult = this.transportResult;
+                        this.transportResult = undefined;
+                        data = typeof (this.buffer[0]) === "string" ?
+                            this.buffer.join("") :
+                            TransportSendQueue.concatBuffers(this.buffer);
+                        this.buffer.length = 0;
+                        _a.label = 2;
+                    case 2:
+                        _a.trys.push([2, 4, , 5]);
+                        return [4 /*yield*/, this.transport.send(data)];
+                    case 3:
+                        _a.sent();
+                        transportResult.resolve();
+                        return [3 /*break*/, 5];
+                    case 4:
+                        error_1 = _a.sent();
+                        transportResult.reject(error_1);
+                        return [3 /*break*/, 5];
+                    case 5: return [3 /*break*/, 0];
+                    case 6: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    TransportSendQueue.concatBuffers = function (arrayBuffers) {
+        var totalLength = arrayBuffers.map(function (b) { return b.byteLength; }).reduce(function (a, b) { return a + b; });
+        var result = new Uint8Array(totalLength);
+        var offset = 0;
+        for (var _i = 0, arrayBuffers_1 = arrayBuffers; _i < arrayBuffers_1.length; _i++) {
+            var item = arrayBuffers_1[_i];
+            result.set(new Uint8Array(item), offset);
+            offset += item.byteLength;
+        }
+        return result;
+    };
+    return TransportSendQueue;
+}());
+
+var PromiseSource = /** @class */ (function () {
+    function PromiseSource() {
+        var _this = this;
+        this.promise = new Promise(function (resolve, reject) {
+            var _a;
+            return _a = [resolve, reject], _this.resolver = _a[0], _this.rejecter = _a[1], _a;
+        });
+    }
+    PromiseSource.prototype.resolve = function () {
+        this.resolver();
+    };
+    PromiseSource.prototype.reject = function (reason) {
+        this.rejecter(reason);
+    };
+    return PromiseSource;
+}());
 
 
 /***/ }),
@@ -4533,6 +4698,9 @@ var WebSocketTransport = /** @class */ (function () {
                                 if (typeof ErrorEvent !== "undefined" && event instanceof ErrorEvent) {
                                     error = event.error;
                                 }
+                                else {
+                                    error = new Error("There was an error with the transport.");
+                                }
                                 reject(error);
                             };
                             webSocket.onmessage = function (message) {
@@ -4616,7 +4784,7 @@ var JsonHubProtocol = /** @class */ (function () {
         /** @inheritDoc */
         this.transferFormat = _ITransport__WEBPACK_IMPORTED_MODULE_2__["TransferFormat"].Text;
     }
-    /** Creates an array of {@link @aspnet/signalr.HubMessage} objects from the specified serialized representation.
+    /** Creates an array of {@link @microsoft/signalr.HubMessage} objects from the specified serialized representation.
      *
      * @param {string} input A string containing the serialized representation.
      * @param {ILogger} logger A logger that will be used to log messages that occur during parsing.
@@ -4666,7 +4834,7 @@ var JsonHubProtocol = /** @class */ (function () {
         }
         return hubMessages;
     };
-    /** Writes the specified {@link @aspnet/signalr.HubMessage} to a string and returns it.
+    /** Writes the specified {@link @microsoft/signalr.HubMessage} to a string and returns it.
      *
      * @param {HubMessage} message The message to write.
      * @returns {string} A string containing the serialized representation of the message.

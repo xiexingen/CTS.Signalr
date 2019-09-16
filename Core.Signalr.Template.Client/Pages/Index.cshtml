@@ -1,106 +1,74 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Signalr Demo";
 }
 
-<div class="container">
-    <div class="row">&nbsp;</div>
-    <div class="row">
-        <div class="col-2">User</div>
-        <div class="col-4"><input type="text" id="userInput" /></div>
-    </div>
-    <div class="row">
-        <div class="col-2">Message</div>
-        <div class="col-4"><input type="text" id="messageInput" /></div>
-    </div>
-    <div class="row">&nbsp;</div>
-    <div class="row">
-        <div class="col-6">
-            <input type="button" id="sendButton" value="Send Message" />
+<div class="container" id="pageContent">
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" data-toggle="tab" href="#project" role="tab" aria-controls="home" aria-selected="true">项目中心</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#chat" role="tab" aria-controls="profile" aria-selected="false">聊天</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#logout" role="tab" aria-controls="contact" aria-selected="false">超时退出</a>
+        </li>
+    </ul>
+    <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="project" role="tabpanel" aria-labelledby="home-tab">
+            <div class="card-body">
+                <button class="btn btn-primary" type="button" click-type="assign">模拟分配责任人</button>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="chat" role="tabpanel" aria-labelledby="profile-tab">
+
+        </div>
+        <div class="tab-pane fade" id="logout" role="tabpanel" aria-labelledby="contact-tab">
+
         </div>
     </div>
 </div>
-<div class="row">
-    <div class="col-12">
-        <hr />
-    </div>
-</div>
-<div class="row">
-    <div class="col-6">
-        <ul id="messagesList"></ul>
-    </div>
-</div>
-</div>
-<div class="row">
-    <div class="col-12">
-        <hr />
-    </div>
-</div>
-<div class="row">
-    <div class="col-6">
-        <ul id="messagesList"></ul>
-    </div>
-</div>
 @section Scripts{
+    <script src="~/js/initSignalr.js" asp-append-version="true"></script>
     <script>
         $(function () {
+            // 模拟一个userId
+            var userId = new Date().getTime();
+            var groupName = '11111111111111111111111';
 
-            var signalrObj=initSignalr();
-
-            function initSignalr(option) {
-                var connection = new signalR.HubConnectionBuilder()
-                    .configureLogging(signalR.LogLevel.Debug)
-                    .withUrl('https://localhost:50000/notify-hub')
-                    .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
-                    .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-                    .build();
-
-                document.getElementById("sendButton").disabled = true;
-
-                connection.on('OnNotify', function (obj) {
-                    console.info('OnNotify..........',obj);
-                })
-
-                connection.on('OnReceiveMessage', function (user, message) {
-                    console.info('OnReceiveMessage..........', user, message);
-                    var msg = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                    var encodedMsg = user + " says " + msg;
-                    var li = document.createElement("li");
-                    li.textContent = encodedMsg;
-                    document.getElementById("messagesList").appendChild(li);
-                })
-
-                connection.onreconnecting(function(error){
-                    console.assert(connection.state === signalR.HubConnectionState.Reconnecting);
-
-                    document.getElementById("messageInput").disabled = true;
-
-                    var li = document.createElement("li");
-                    li.textContent = 'Connection lost due to error '+error+'. Reconnecting.';
-                    document.getElementById("messagesList").appendChild(li);
-                });
-
-                connection.onclose(function (err) {
-                    console.log('onClose', err);
-                })
-
-                connection.start().then(function () {
-                    document.getElementById("sendButton").disabled = false;
-                }).catch(function (error) {
-                    console.log(error.toString());
-                })
-                return connection;
-            }
-
-            document.getElementById("sendButton").addEventListener("click", function (event) {
-                var user = document.getElementById("userInput").value;
-                var message = document.getElementById("messageInput").value;
-                signalrObj.invoke("SendMessage", user, message).catch(function (err) {
-                    return console.error(err.toString());
-                });
-                event.preventDefault();
+            var connection = initSignalr({
+                delay: 0,
+                url: 'https://localhost:50000/notify-hub?userId=' + userId,
+                loggingLevel: signalR.LogLevel.Trace,
+                onNotify: function (data) {
+                    console.log('OnNotify..........', data);
+                },
+                onStarted: function () {
+                    connection.invoke("JoinToGroup",groupName).catch(function (err) {
+                        return console.error(err.toString());
+                    });
+                }
             });
+
+            connection.on('OnJoinGroup', function (data) {
+                console.log('Signalr ----  OnJoinGroup', data);
+            })
+
+            function initPageEvent() {
+                $('#pageContent').on('click.bind', '[click-type]', function (e) {
+                    var $target = $(e.target);
+                    var type = $target.attr('click-type');
+                    switch (type) {
+                        case "assign":
+
+                            break;
+                        default:
+                    }
+                })
+            };
+            initPageEvent();
         })
     </script>
 }

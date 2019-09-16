@@ -1,0 +1,20 @@
+﻿function initNotify(option) {
+    //特性检测 是否支持web worker
+    if (window.Worker) {
+        var notifyWorker = new Worker("/js/notifyWebwork.js", { name: 'signalr-worker' });
+
+        //发送消息
+        notifyWorker.postMessage(option);
+
+        // 监听消息
+        notifyWorker.onmessage = function (event) {
+            debugger;
+        };
+    } else {
+        var connection = initSignalr(option);
+
+        connection.on('OnReceiveMessage', function (user, message) {
+            console.log('OnReceiveMessage..........', user, message);
+        });
+    }
+}

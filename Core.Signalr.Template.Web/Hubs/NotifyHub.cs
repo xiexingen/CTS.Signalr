@@ -1,31 +1,52 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using System;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Core.Signalr.Template.Web.Hubs
 {
     public interface IServerNotifyHub
     {
-        Task SendMessage(string userName,string message);
+        Task JoinToGroup(string groupName);
     }
 
     public interface IClientNotifyHub
     {
         Task OnNotify(object data);
 
-        Task OnReceiveMessage(string userName,string message);
+        Task OnJoinGroup(object data);
     }
 
     public class NotifyHub : Hub<IClientNotifyHub>,IServerNotifyHub
     {
-        public override async Task OnConnectedAsync()
+        private readonly IUserIdProvider _userIdProvider;
+
+        public NotifyHub(IUserIdProvider userIdProvider)
         {
-            await Clients.All.OnNotify(new { Name = "xxg", ConnectId = Context.ConnectionId });
-            await base.OnConnectedAsync();
+            _userIdProvider = userIdProvider;
         }
 
-        public async Task SendMessage(string userName, string message)
+        //public override async Task OnConnectedAsync()
+        //{
+        //    var userId=Context.GetHttpContext().Request.Query["userId"].ToString();
+        //    await Clients.All.OnNotify(new { Name = userId, ConnectId = Context.ConnectionId });
+        //    await base.OnConnectedAsync();
+        //}
+
+        public override Task OnDisconnectedAsync(Exception exception)
         {
-            await Clients.All.OnReceiveMessage(userName, message);
+            return base.OnDisconnectedAsync(exception);
+        }
+
+        public async Task JoinToGroup(string groupName)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+            await Clients.Group(groupName).OnJoinGroup(new {ConnectId=Context.ConnectionId,groupName=groupName });
+        }
+
+        public async Task RemoveFromGroup(string groupName) 
+        { 
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId,groupName);
         }
     }
 }

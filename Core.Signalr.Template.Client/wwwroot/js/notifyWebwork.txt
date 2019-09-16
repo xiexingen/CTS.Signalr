@@ -1,0 +1,13 @@
+﻿importScripts('/lib/jquery/dist/jquery.js');
+importScripts('/lib/signalr-protocol-msgpack/msgpack5.js');
+importScripts('/lib/signalr-protocol-msgpack/signalr-protocol-msgpack.js');
+importScripts('/js/initsignalr.js');
+
+onmessage = function (option) {
+    debugger
+    option.onNotify = function (data) {
+        postMessage(data);
+    };
+
+    var connection = initSignalr(option);
+}

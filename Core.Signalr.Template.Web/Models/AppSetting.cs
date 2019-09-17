@@ -7,6 +7,7 @@
     {
         public JwtSetting JwtSetting { set;get;}
         public RedisCache RedisCache { set;get;}
+        public RedisCache SignalrRedisCache { set; get; }
         public string CORS { set;get;}
     }
 

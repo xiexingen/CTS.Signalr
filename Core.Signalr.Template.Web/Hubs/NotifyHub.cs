@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Core.Signalr.Template.Web.Cores;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Linq;
@@ -23,8 +24,16 @@ namespace Core.Signalr.Template.Web.Hubs
     [Authorize]
     public class NotifyHub : Hub<IClientNotifyHub>,IServerNotifyHub
     {
+        private readonly SignalrRedisHelper _signalrRedisHelper;
+
+        public NotifyHub(SignalrRedisHelper signalrRedisHelper)
+        {
+            _signalrRedisHelper = signalrRedisHelper;
+        }
+
         public override async Task OnConnectedAsync()
         {
+            
             var userId = Context.GetHttpContext().Request.Query["userId"].FirstOrDefault();
             await Clients.All.OnNotify(new { UserId= userId,Name=Context.User.Identity.Name, ConnectId = Context.ConnectionId });
             await base.OnConnectedAsync();

@@ -35,6 +35,8 @@ namespace Core.Signalr.Template.Web
             services.Configure<AppSetting>(option => appSection.Bind(option));
             var appSetting = appSection.Get<AppSetting>();
 
+            services.AddSingleton<SignalrRedisHelper>();
+
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -101,18 +103,23 @@ namespace Core.Signalr.Template.Web
                      var config = new ConfigurationOptions
                      {
                          AbortOnConnectFail = false,
-                         // Password = "changeme"
+                         // Password = "changeme",
+                         ChannelPrefix="_signalr",
                      };
                      //config.EndPoints.Add(IPAddress.Loopback, 0);
                      //config.SetDefaultPorts();
-                     config.DefaultDatabase = appSetting.RedisCache.DatabaseId;
-                     var connection = await ConnectionMultiplexer.ConnectAsync(appSetting.RedisCache.ConnectionString, writer);
+                     config.DefaultDatabase = appSetting.SignalrRedisCache.DatabaseId;
+                     var connection = await ConnectionMultiplexer.ConnectAsync(appSetting.SignalrRedisCache.ConnectionString, writer);
                      connection.ConnectionFailed += (_, e) =>
                      {
-                         Console.WriteLine("Connection to Redis failed");
+                         Console.WriteLine("Connection to Redis failed.");
                      };
 
-                     if (!connection.IsConnected)
+                     if (connection.IsConnected)
+                     {
+                         Console.WriteLine("connected to Redis.");
+                     }
+                     else
                      {
                          Console.WriteLine("Did not connect to Redis.");
                      }

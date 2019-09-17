@@ -37,6 +37,8 @@ namespace Core.Signalr.Template.Web
 
             services.AddSingleton<SignalrRedisHelper>();
 
+            services.AddHostedService<ClearBackGroundService>();
+
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

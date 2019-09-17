@@ -33,26 +33,41 @@ namespace Core.Signalr.Template.Web.Hubs
 
         public override async Task OnConnectedAsync()
         {
-            
-            var userId = Context.GetHttpContext().Request.Query["userId"].FirstOrDefault();
-            await Clients.All.OnNotify(new { UserId= userId,Name=Context.User.Identity.Name, ConnectId = Context.ConnectionId });
+            await Clients.All.OnNotify(new { UserId= Context.User.Identity.Name, Name=Context.User.Identity.Name, ConnectId = Context.ConnectionId });
+
+            var userId= Context.User.Identity.Name;
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                await _signalrRedisHelper.AddConnectForUserAsync(userId, Context.ConnectionId);
+            }
             await base.OnConnectedAsync();
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
+            var userId = Context.User.Identity.Name;
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                await _signalrRedisHelper.RemoveConnectForUser(userId, Context.ConnectionId);
+            }            
             await base.OnDisconnectedAsync(exception);
         }
 
+        /// <summary>
+        /// 加入某个组
+        /// </summary>
+        /// <param name="groupName"></param>
+        /// <returns></returns>
         public async Task JoinToGroup(string groupName)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
             await Clients.Group(groupName).OnJoinGroup(new {ConnectId=Context.ConnectionId,groupName=groupName });
-        }
 
-        public async Task RemoveFromGroup(string groupName) 
-        { 
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId,groupName);
+            var userId = Context.User.Identity.Name;
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                await _signalrRedisHelper.AddUserForGroupAsync(groupName, userId);
+            }
         }
     }
 }

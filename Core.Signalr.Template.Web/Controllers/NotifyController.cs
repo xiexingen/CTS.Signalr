@@ -27,7 +27,6 @@ namespace Core.Signalr.Template.Web.Controllers
         public void Post([FromBody] string value)
         {
             
-            
         }
     }
 }

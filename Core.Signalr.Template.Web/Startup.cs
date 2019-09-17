@@ -1,16 +1,19 @@
-﻿using Core.Signalr.Template.Web.Hubs;
+﻿using Core.Signalr.Template.Web.Cores;
+using Core.Signalr.Template.Web.Hubs;
+using Core.Signalr.Template.Web.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
-using System.Net;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Core.Signalr.Template.Web
 {
@@ -28,6 +31,35 @@ namespace Core.Signalr.Template.Web
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            var appSection = Configuration.GetSection("App");
+            services.Configure<AppSetting>(option => appSection.Bind(option));
+            var appSetting = appSection.Get<AppSetting>();
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultForbidScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(option =>
+            {
+                option.SecurityTokenValidators.Clear();
+                option.SecurityTokenValidators.Add(new UserTokenValidation()); ;
+
+                option.Events = new JwtBearerEvents()
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var userId = context.Request.Query["userId"].FirstOrDefault();
+                        if (!string.IsNullOrWhiteSpace(userId))
+                        {
+                            context.Token = userId;
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+
+
             //services.Configure<CookiePolicyOptions>(options =>
             //{
             //    options.CheckConsentNeeded = context => true;
@@ -35,7 +67,7 @@ namespace Core.Signalr.Template.Web
             //});
             services.AddCors(options => options.AddPolicy("CorsPolicy", builder =>
             {
-                builder.WithOrigins(Configuration.GetValue<string>("App:CORS").Split(","))
+                builder.WithOrigins(appSetting.CORS.Split(","))
                        //.SetIsOriginAllowed(origin => true)
                        .AllowAnyHeader()
                        .AllowAnyMethod()
@@ -43,6 +75,7 @@ namespace Core.Signalr.Template.Web
             }));
 
             services.AddControllers().SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+            
             // 添加Signalr
             services.AddSignalR(config =>
             {
@@ -51,15 +84,15 @@ namespace Core.Signalr.Template.Web
                     config.EnableDetailedErrors = true;
                 }
             })
-                // 支持MessagePack
-                .AddMessagePackProtocol(option =>
+            // 支持MessagePack
+            .AddMessagePackProtocol(option =>
+            {
+                option.FormatterResolvers = new List<MessagePack.IFormatterResolver>()
                 {
-                    option.FormatterResolvers = new List<MessagePack.IFormatterResolver>()
-                    {
-                        MessagePack.Resolvers.DynamicGenericResolver.Instance,
-                        MessagePack.Resolvers.StandardResolver.Instance
-                    };
-                })
+                    MessagePack.Resolvers.DynamicGenericResolver.Instance,
+                    MessagePack.Resolvers.StandardResolver.Instance
+                };
+            })
             // 使用redis做底板 支持横向扩展 Scale-out
             .AddStackExchangeRedis(o =>
              {
@@ -72,8 +105,8 @@ namespace Core.Signalr.Template.Web
                      };
                      //config.EndPoints.Add(IPAddress.Loopback, 0);
                      //config.SetDefaultPorts();
-                     config.DefaultDatabase = Configuration.GetValue<int>("App:RedisCache:DatabaseId");
-                     var connection = await ConnectionMultiplexer.ConnectAsync(Configuration.GetValue<string>("App:RedisCache:ConnectionString"), writer);
+                     config.DefaultDatabase = appSetting.RedisCache.DatabaseId;
+                     var connection = await ConnectionMultiplexer.ConnectAsync(appSetting.RedisCache.ConnectionString, writer);
                      connection.ConnectionFailed += (_, e) =>
                      {
                          Console.WriteLine("Connection to Redis failed");
@@ -99,24 +132,26 @@ namespace Core.Signalr.Template.Web
             else
             {
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-                app.UseHsts();
+                // app.UseHsts();
+                // app.UseHttpsRedirection();
             }
-
-            app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCors("CorsPolicy");
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+
             // app.UseCookiePolicy();
             app.UseRouting();
-            //app.UseAuthorization();
+
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(
                     name: "default",
-                    pattern: "{controller=Home}/{action=Index}/{id?}");
+                    pattern: "api/{controller=Values}/{action=Get}/{id?}");
 
                 endpoints.MapHub<NotifyHub>("/notify-hub");
-                endpoints.MapHub<DemoHub>("/demo-hub");
             });
         }
     }

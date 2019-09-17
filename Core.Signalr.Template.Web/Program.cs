@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Core.Signalr.Template.Web
 {
@@ -12,6 +13,11 @@ namespace Core.Signalr.Template.Web
 
         public static IHostBuilder CreateWebHostBuilder(string[] args) =>
            Host.CreateDefaultBuilder(args)
+             .ConfigureLogging(logging =>
+             {
+                 logging.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Debug);
+                 logging.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Debug);
+             })
             .ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder.UseStartup<Startup>();

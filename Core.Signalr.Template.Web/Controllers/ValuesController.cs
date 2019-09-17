@@ -1,8 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
+using Core.Signalr.Template.Web.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Core.Signalr.Template.Web.Controllers
 {
@@ -10,18 +16,20 @@ namespace Core.Signalr.Template.Web.Controllers
     [ApiController]
     public class ValuesController : ControllerBase
     {
+        private readonly IOptionsSnapshot<AppSetting> _appSetting;
+
+        public ValuesController(IOptionsSnapshot<AppSetting> appSetting)
+        {
+            _appSetting = appSetting;
+        }
+
         // GET api/values
         [HttpGet]
         public ActionResult<IEnumerable<string>> Get()
         {
-            return new string[] { "value1", "value2" };
-        }
-
-        // GET api/values/5
-        [HttpGet("{id}")]
-        public ActionResult<string> Get(int id)
-        {
-            return "value";
+            return new List<string>(){
+             User.Identity.Name
+            };
         }
 
         // POST api/values
@@ -40,6 +48,31 @@ namespace Core.Signalr.Template.Web.Controllers
         [HttpDelete("{id}")]
         public void Delete(int id)
         {
+        }
+
+        [HttpPost]
+        public IActionResult Login()
+        {
+            var claims = new Claim[] {
+                new Claim(ClaimTypes.Name,"xxg"),
+                new Claim(ClaimTypes.Role,"admin")
+            };
+            var jwtSetting= _appSetting.Value.JwtSetting;
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSetting.SecretKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken(
+                jwtSetting.Issuer,
+                jwtSetting.Audience,
+                claims,
+                DateTime.Now,
+                DateTime.Now.AddMinutes(10),
+                creds
+            );
+
+            return Ok(new
+            {
+                token = new JwtSecurityTokenHandler().WriteToken(token)
+            });
         }
     }
 }

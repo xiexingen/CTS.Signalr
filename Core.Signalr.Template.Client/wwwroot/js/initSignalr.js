@@ -19,17 +19,19 @@ function initSignalr(option) {
 
     var connection = new signalR.HubConnectionBuilder()
         .configureLogging(config.loggingLevel)
-        .withUrl(config.url)
+        .withUrl(config.url, {
+            accessTokenFactory: option.accessTokenFactory
+        })
         .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
-        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
         .build();
 
     connection.onreconnecting(function (info) {
-        console.info('--signalr-- onreconnecting', info);
+        console.info('----------------------------------signalr-- onreconnecting', info);
     });
 
     connection.onclose(function (err) {
-        console.info('--signalr-- onclose', err);
+        console.info('--------------------------------signalr-- onclose', err);
     });
 
     connection.on('OnNotify', config.onNotify);

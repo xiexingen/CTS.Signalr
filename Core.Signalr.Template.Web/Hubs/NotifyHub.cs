@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -17,25 +19,20 @@ namespace Core.Signalr.Template.Web.Hubs
         Task OnJoinGroup(object data);
     }
 
+
+    [Authorize]
     public class NotifyHub : Hub<IClientNotifyHub>,IServerNotifyHub
     {
-        private readonly IUserIdProvider _userIdProvider;
-
-        public NotifyHub(IUserIdProvider userIdProvider)
+        public override async Task OnConnectedAsync()
         {
-            _userIdProvider = userIdProvider;
+            var userId = Context.GetHttpContext().Request.Query["userId"].FirstOrDefault();
+            await Clients.All.OnNotify(new { UserId= userId,Name=Context.User.Identity.Name, ConnectId = Context.ConnectionId });
+            await base.OnConnectedAsync();
         }
 
-        //public override async Task OnConnectedAsync()
-        //{
-        //    var userId=Context.GetHttpContext().Request.Query["userId"].ToString();
-        //    await Clients.All.OnNotify(new { Name = userId, ConnectId = Context.ConnectionId });
-        //    await base.OnConnectedAsync();
-        //}
-
-        public override Task OnDisconnectedAsync(Exception exception)
+        public override async Task OnDisconnectedAsync(Exception exception)
         {
-            return base.OnDisconnectedAsync(exception);
+            await base.OnDisconnectedAsync(exception);
         }
 
         public async Task JoinToGroup(string groupName)

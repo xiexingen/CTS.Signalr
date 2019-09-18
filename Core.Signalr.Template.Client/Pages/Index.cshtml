@@ -45,19 +45,15 @@
             var userId = new Date().getTime();
             var groupName = '11111111111111111111111';
             var $logs = $('#logs');
-
             var connection = initSignalr({
                 delay: 0,
-                url: 'http://localhost:50001/notify-hub?userId='+userId,
-                loggingLevel: signalR.LogLevel.Debug,
+                url: 'http://localhost:50001/notify-hub?userId='+userId+'&group='+groupName,
+                loggingLevel: signalR.LogLevel.Trace,
                 onNotify: function (data) {
                     $logs.val($logs.val() + '\r\nOnNotify..........' + JSON.stringify(data));
                 },
                 onStarted: function () {
-                    connection.invoke("JoinToGroup",groupName).catch(function (err) {
-                        return console.error(err.toString());
-                    });
-
+                   
                 },
                 //accessTokenFactory: function () {
                 //    return userId;
@@ -66,6 +62,10 @@
 
             connection.on('OnJoinGroup', function (data) {
                 $logs.val($logs.val() + '\r\n OnJoinGroup..........' + JSON.stringify(data));
+            })
+
+             connection.on('OnLeaveGroup', function (data) {
+                $logs.val($logs.val() + '\r\n OnLeaveGroup..........' + JSON.stringify(data));
             })
 
             function initPageEvent() {

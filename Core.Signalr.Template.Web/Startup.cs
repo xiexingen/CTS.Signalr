@@ -9,10 +9,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Serialization;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mime;
 using System.Threading.Tasks;
 
 namespace Core.Signalr.Template.Web
@@ -37,14 +39,15 @@ namespace Core.Signalr.Template.Web
 
             services.AddSingleton<SignalrRedisHelper>();
 
-            services.AddHostedService<ClearBackGroundService>();
+            // services.AddHostedService<ClearBackGroundService>();
 
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultForbidScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(option =>
+            })
+                    .AddJwtBearer(option =>
             {
                 option.SecurityTokenValidators.Clear();
                 option.SecurityTokenValidators.Add(new UserTokenValidation()); ;
@@ -63,12 +66,6 @@ namespace Core.Signalr.Template.Web
                 };
             });
 
-
-            //services.Configure<CookiePolicyOptions>(options =>
-            //{
-            //    options.CheckConsentNeeded = context => true;
-            //    options.MinimumSameSitePolicy = SameSiteMode.None;
-            //});
             services.AddCors(options => options.AddPolicy("CorsPolicy", builder =>
             {
                 builder.WithOrigins(appSetting.CORS.Split(","))
@@ -78,7 +75,20 @@ namespace Core.Signalr.Template.Web
                        .AllowCredentials();
             }));
 
-            services.AddControllers().SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+            services.AddControllers()
+                .AddNewtonsoftJson(options =>options.SerializerSettings.ContractResolver =new CamelCasePropertyNamesContractResolver())
+                .ConfigureApiBehaviorOptions(options =>
+                {
+                    options.InvalidModelStateResponseFactory = context =>
+                    {
+                        var result = new BadRequestObjectResult(context.ModelState);
+                        result.ContentTypes.Add(MediaTypeNames.Application.Json);
+                        // result.ContentTypes.Add(MediaTypeNames.Application.Xml);
+
+                        return result;
+                    };
+                })
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
             
             // 添加Signalr
             services.AddSignalR(config =>
@@ -106,7 +116,7 @@ namespace Core.Signalr.Template.Web
                      {
                          AbortOnConnectFail = false,
                          // Password = "changeme",
-                         ChannelPrefix="_signalr",
+                         ChannelPrefix="__signalr_",
                      };
                      //config.EndPoints.Add(IPAddress.Loopback, 0);
                      //config.SetDefaultPorts();
@@ -123,7 +133,7 @@ namespace Core.Signalr.Template.Web
                      }
                      else
                      {
-                         Console.WriteLine("Did not connect to Redis.");
+                         Console.WriteLine("Did not connect to Redis");
                      }
 
                      return connection;

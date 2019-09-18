@@ -1,4 +1,5 @@
 ﻿using Core.Signalr.Template.Web.Models;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using StackExchange.Redis;
@@ -13,8 +14,8 @@ namespace Core.Signalr.Template.Web.Cores
     {
         private readonly IOptions<AppSetting> _appSetting;
         private readonly ConnectionMultiplexer _connectionMultiplexer;
-        private static readonly string _preFix_User= "_signalrc_user";
-        private static readonly string _preFix_Group = "_signalrc_group";
+        public static readonly string PREFIXUSER= "signalr_u_";
+        public static readonly string PREFIXGROUP = "signalr_g_";
 
         private static IDatabase _database;
 
@@ -28,7 +29,7 @@ namespace Core.Signalr.Template.Web.Cores
         {
             if (_database == null)
             {
-                lock (_preFix)
+                lock (PREFIXUSER)
                 {
                     if (_database == null)
                     {
@@ -39,40 +40,48 @@ namespace Core.Signalr.Template.Web.Cores
             return _database;
         }
 
+        public IServer GetServer()
+        {
+            return _connectionMultiplexer.GetServer(_appSetting.Value.RedisCache.ConnectionString);
+        }
+
         public async Task AddConnectForUserAsync(string userId, string connectionId)
         {
-            await GetDatabase().SetAddAsync($"{_preFix_User}{userId}", connectionId);
+            await GetDatabase().SetAddAsync($"{PREFIXUSER}{userId}", connectionId);
         }
         
-        public async Task<List<string>> GetConnectsByUser(string userId)
+        public async Task<List<string>> GetConnectsByUserAsync(string userId)
         {
-            return (await GetDatabase().ListRangeAsync($"{_preFix_User}{userId}"))
+            return (await GetDatabase().ListRangeAsync($"{PREFIXUSER}{userId}"))
                 .Select(m=>m.ToString()).ToList();
         }
         
-        public async Task RemoveConnectForUser(string userId,string connectionId)
+        public async Task RemoveConnectForUserAsync(string userId,string connectionId)
         {
-            await GetDatabase().SetRemoveAsync($"{_preFix_User}{userId}", connectionId);
+            await GetDatabase().SetRemoveAsync($"{PREFIXUSER}{userId}", connectionId);
         }
 
-        public async Task AddUserForGroupAsync(string group, string userId)
+        public async Task AddUserForGroupAsync(string group,string connectId, string userId)
         {
-            await GetDatabase().SetAddAsync($"{_preFix_Group}{group}", userId);
+            await GetDatabase().HashSetAsync($"{PREFIXGROUP}{group}",connectId,userId);
         }
 
-        public async Task<List<string>> GetUsersByGroup(string group)
+        public async Task RemoveConnectFromGroupAsync(string group,string connectId)
         {
-            return (await GetDatabase().ListRangeAsync($"{_preFix_Group}{group}"))
-                .Select(m => m.ToString()).ToList();
+            await GetDatabase().HashDeleteAsync($"{PREFIXGROUP}{group}",connectId);
         }
 
-        public async Task RemoveUserForGroup(string group, string userId)
-        {
-            await GetDatabase().SetRemoveAsync($"{_preFix_Group}{group}", userId);
-        }
+        //public async Task<List<string>> GetUsersByGroupAsync(string group)
+        //{
 
+        //    return (await GetDatabase().ListRangeAsync($"{PREFIXGROUP}{group}"))
+        //        .Select(m => m.ToString()).ToList();
+        //}
 
-
+        //public async Task RemoveUserForGroupAsync(string group, string userId)
+        //{
+        //    await GetDatabase().SetRemoveAsync($"{PREFIXGROUP}{group}", userId);
+        //}
 
         ///// <summary>
         ///// 从redis缓存中的组移除指定用户，并返回组名

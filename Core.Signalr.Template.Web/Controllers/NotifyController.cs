@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Core.Signalr.Template.Web.Cores;
+using Core.Signalr.Template.Web.Dtos;
 using Core.Signalr.Template.Web.Hubs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 
@@ -11,6 +13,7 @@ namespace Core.Signalr.Template.Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [AllowAnonymous]
     public class NotifyController : ControllerBase
     {
         private readonly IHubContext<NotifyHub> _notifyHub;
@@ -24,9 +27,10 @@ namespace Core.Signalr.Template.Web.Controllers
 
         // POST api/notify
         [HttpPost]
-        public void Post([FromBody] string value)
+        public NotifyData Post(NotifyData values)
         {
-            
+
+            return values;
         }
     }
 }

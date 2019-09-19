@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core.Signalr.Template.Web",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core.Signalr.Template.Client", "Core.Signalr.Template.Client\Core.Signalr.Template.Client.csproj", "{BCCCE068-7279-4616-B63B-4832E5844FB8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core.Signalr.Template.Test", "Core.Signalr.Template.Test\Core.Signalr.Template.Test.csproj", "{FCAB7C36-CFC3-4E2E-B512-B73C6B4C1175}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{BCCCE068-7279-4616-B63B-4832E5844FB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BCCCE068-7279-4616-B63B-4832E5844FB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BCCCE068-7279-4616-B63B-4832E5844FB8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCAB7C36-CFC3-4E2E-B512-B73C6B4C1175}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCAB7C36-CFC3-4E2E-B512-B73C6B4C1175}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCAB7C36-CFC3-4E2E-B512-B73C6B4C1175}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCAB7C36-CFC3-4E2E-B512-B73C6B4C1175}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

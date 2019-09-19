@@ -18,9 +18,9 @@ namespace Core.Signalr.Template.Web.Hubs
     {
         Task OnNotify(object data);
 
-        Task OnJoinGroup(object data);
+        //Task OnJoinGroup(object data);
 
-        Task OnLeaveGroup(object data);
+        //Task OnLeaveGroup(object data);
     }
 
 
@@ -38,7 +38,7 @@ namespace Core.Signalr.Template.Web.Hubs
 
         public override async Task OnConnectedAsync()
         {
-            await Clients.All.OnNotify(new { UserId= Context.User.Identity.Name, Name=Context.User.Identity.Name, ConnectId = Context.ConnectionId });
+            //await Clients.All.OnNotify(new { UserId= Context.User.Identity.Name, Name=Context.User.Identity.Name, ConnectId = Context.ConnectionId });
 
             var userId= Context.User.Identity.Name;
             var groups=Context.GetHttpContext().Request.Query["group"].FirstOrDefault();
@@ -77,7 +77,7 @@ namespace Core.Signalr.Template.Web.Hubs
                     await Groups.AddToGroupAsync(connectionId, group);
                     await _signalrRedisHelper.AddUserForGroupAsync(group, connectionId, userId);
 
-                    await Clients.Group(group).OnJoinGroup(new { ConnectId = connectionId, UserId = userId, GroupName = group });
+                    // await Clients.Group(group).OnJoinGroup(new { ConnectId = connectionId, UserId = userId, GroupName = group });
                 }
             }
         }
@@ -95,7 +95,7 @@ namespace Core.Signalr.Template.Web.Hubs
                 {
                     await Groups.RemoveFromGroupAsync(connectionId, group);
                     await _signalrRedisHelper.RemoveConnectFromGroupAsync(group,connectionId);
-                    await Clients.Group(group).OnLeaveGroup(new { ConnectId = connectionId, GroupName = group });
+                    // await Clients.Group(group).OnLeaveGroup(new { ConnectId = connectionId, GroupName = group });
                 }
             }
         }

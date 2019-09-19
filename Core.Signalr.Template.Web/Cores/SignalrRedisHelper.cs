@@ -1,4 +1,5 @@
-﻿using Core.Signalr.Template.Web.Models;
+﻿using Core.Signalr.Template.Web.Dtos;
+using Core.Signalr.Template.Web.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -52,7 +53,7 @@ namespace Core.Signalr.Template.Web.Cores
         
         public async Task<List<string>> GetConnectsByUserAsync(string userId)
         {
-            return (await GetDatabase().ListRangeAsync($"{PREFIXUSER}{userId}"))
+            return (await GetDatabase().SetMembersAsync($"{PREFIXUSER}{userId}"))
                 .Select(m=>m.ToString()).ToList();
         }
         
@@ -71,12 +72,15 @@ namespace Core.Signalr.Template.Web.Cores
             await GetDatabase().HashDeleteAsync($"{PREFIXGROUP}{group}",connectId);
         }
 
-        //public async Task<List<string>> GetUsersByGroupAsync(string group)
-        //{
-
-        //    return (await GetDatabase().ListRangeAsync($"{PREFIXGROUP}{group}"))
-        //        .Select(m => m.ToString()).ToList();
-        //}
+        public async Task<List<UserConnection>> GetUsersByGroupAsync(string group)
+        {
+            var hashUsers=await GetDatabase().HashGetAllAsync($"{PREFIXGROUP}{group}");
+            var users= hashUsers.Select(m=>new UserConnection(){
+                ConnectionId = m.Name.ToString(),
+                UserId =m.Value.ToString()                
+            }).ToList();
+            return users;
+        }
 
         //public async Task RemoveUserForGroupAsync(string group, string userId)
         //{

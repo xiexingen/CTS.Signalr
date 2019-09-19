@@ -1,10 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.ComponentModel.DataAnnotations;
-
-namespace Core.Signalr.Template.Web.Dtos
+﻿namespace Core.Signalr.Template.Web.Dtos
 {
-    [Serializable]
     public class NotifyData
     {
         /// <summary>
@@ -19,8 +14,6 @@ namespace Core.Signalr.Template.Web.Dtos
         /// 是否排除指定用户列表
         /// </summary>
         public bool ExcludeUsers { set;get;}
-
-        [Required]
-        public virtual JObject NotifyObj { set;get;}
+        public virtual object NotifyObj { set;get;}
     }
 }

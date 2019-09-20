@@ -34,6 +34,7 @@ namespace Core.Signalr.Template.Web.Controllers
         [HttpPost]
         public async Task Post(NotifyData input)
         {
+            _logger.LogDebug($"post:{JsonConvert.SerializeObject(input)}");
             var hasGroups= !string.IsNullOrWhiteSpace(input.GroupId);
             input.NotifyObj=JsonConvert.SerializeObject(input.NotifyObj);
             if (hasGroups)

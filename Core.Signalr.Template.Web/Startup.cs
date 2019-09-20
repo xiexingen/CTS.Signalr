@@ -1,5 +1,6 @@
 ﻿using Core.Signalr.Template.Web.Cores;
 using Core.Signalr.Template.Web.Hubs;
+using Core.Signalr.Template.Web.Logs;
 using Core.Signalr.Template.Web.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -142,7 +143,7 @@ namespace Core.Signalr.Template.Web
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app)
+        public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
             if (_webEnv.IsDevelopment())
             {
@@ -154,6 +155,9 @@ namespace Core.Signalr.Template.Web
                 // app.UseHsts();
                 // app.UseHttpsRedirection();
             }
+
+            loggerFactory.AddLog4Net();
+
             app.UseStaticFiles();
             app.UseCors("CorsPolicy");
 

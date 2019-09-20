@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Core.Signalr.Template.Web.Hubs
@@ -54,7 +53,6 @@ namespace Core.Signalr.Template.Web.Hubs
         {
             var userId = Context.User.Identity.Name;
             var groups = Context.GetHttpContext().Request.Query["group"].FirstOrDefault();
-            _logger.LogInformation($"OnDisconnectedAsync--userId:{userId},group:{groups},connectId:{Context.ConnectionId}");
             if (!string.IsNullOrWhiteSpace(userId))
             {
                 await _signalrRedisHelper.RemoveConnectForUserAsync(userId, Context.ConnectionId);

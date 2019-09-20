@@ -60,13 +60,13 @@
                 //}
             });
 
-            connection.on('OnJoinGroup', function (data) {
-                $logs.val($logs.val() + '\r\n OnJoinGroup..........' + JSON.stringify(data));
-            })
+            //connection.on('OnJoinGroup', function (data) {
+            //    $logs.val($logs.val() + '\r\n OnJoinGroup..........' + JSON.stringify(data));
+            //})
 
-             connection.on('OnLeaveGroup', function (data) {
-                $logs.val($logs.val() + '\r\n OnLeaveGroup..........' + JSON.stringify(data));
-            })
+            // connection.on('OnLeaveGroup', function (data) {
+            //    $logs.val($logs.val() + '\r\n OnLeaveGroup..........' + JSON.stringify(data));
+            //})
 
             function initPageEvent() {
                 $('#pageContent').on('click.bind', '[click-type]', function (e) {

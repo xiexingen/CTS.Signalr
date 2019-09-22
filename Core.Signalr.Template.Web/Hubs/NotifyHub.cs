@@ -8,11 +8,17 @@ using System.Threading.Tasks;
 
 namespace Core.Signalr.Template.Web.Hubs
 {
+    /// <summary>
+    /// 服务端接口
+    /// </summary>
     public interface IServerNotifyHub
     {
 
     }
 
+    /// <summary>
+    /// 客户端使用的接口
+    /// </summary>
     public interface IClientNotifyHub
     {
         Task OnNotify(object data);

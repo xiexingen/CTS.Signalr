@@ -11,10 +11,7 @@ function initSignalr(option) {
     var config = Object.assign(true, {
         loggingLevel: signalR.LogLevel.Error,
         delay: 3000,
-        url: '',
-        onNotify: function (data) {
-            console.log('OnNotify', data);
-        }
+        url: ''
     }, option);
 
     var connection = new signalR.HubConnectionBuilder()
@@ -38,7 +35,7 @@ function initSignalr(option) {
 
     setTimeout(function () {
         connection.start().then(function (data) {
-            option.onStarted && option.onStarted();
+            option.onStarted && option.onStarted(data);
         }).catch(function (error) {
             console.error(error.toString());
         });

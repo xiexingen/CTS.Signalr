@@ -1,0 +1,23 @@
+﻿@{
+    ViewData["Title"] = "Signalr 登录";
+}
+
+<div id="pageContent">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">登录</div>
+        </div>
+        <div class="card-body">
+            <form method="post" action="/Account/Login">
+                <div class="form-group">
+                    <label for="userName">用户名</label>
+                    <input autocomplete="off" type="text" class="form-control" name="userName" placeholder="用户名">
+                </div>
+                <button type="submit" class="btn btn-primary">假装登录</button>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts{
+
+}

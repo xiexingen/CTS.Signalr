@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Core.Signalr.Template.Client</title>
+    <title>@ViewData["Title"] - Core Signalr Demo</title>
 
     <environment include="Development">
         <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
@@ -34,6 +34,14 @@
                     </ul>
                 </div>
             </div>
+            @if (User.Identity.IsAuthenticated)
+            {
+                <a asp-area="" asp-controller="Account" asp-action="LoginOut">退出登录</a>
+            }
+            else
+            {
+                <a asp-area="" asp-controller="Account" asp-action="Login">登录</a>
+            }
         </nav>
     </header>
     <div class="container-fluid">

@@ -1,6 +1,4 @@
-﻿@page
-@model IndexModel
-@{
+﻿@{
     ViewData["Title"] = "Signalr Demo";
 }
 
@@ -36,7 +34,9 @@
             <div class="col-sm-8">
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title">当前用户:{{userInfo.userName}},加入的组:{{userInfo.groups}}</div>
+                        <div class="card-title">
+                            当前用户:{{userInfo.userName}} - 加入的组:{{userInfo.groups}} - 连接Id:{{userInfo.connectionId}}
+                        </div>
                     </div>
                     <textarea id="logs" rows="20" class="form-control">{{logs.join('\r\n')}}</textarea>
                 </div>
@@ -47,14 +47,10 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">请输入。。。</h5>
+                    <h5 class="modal-title" id="exampleModalLabel">请输入连接的组</h5>
                 </div>
                 <div class="modal-body">
                     <form id="formInfo">
-                        <div class="form-group">
-                            <label for="recipient-name" class="col-form-label">用户名:</label>
-                            <input type="text" autocomplete="off" required class="form-control" id="userName">
-                        </div>
                         <div class="form-group">
                             <label for="message-text" class="col-form-label">组:</label>
                             <textarea autocomplete="off" placeholder="多个以,隔开" required class="form-control" id="groups"></textarea>
@@ -78,8 +74,9 @@
                 data: {
                     // 用户信息
                     userInfo: {
-                        userName: '',
-                        groups: ''
+                        userName: '@User.Identity.Name',
+                        groups: '',
+                        connectId:''
                     },
                     // 日志
                     logs: [],
@@ -100,8 +97,8 @@
 
                 },
                 mounted: function () {
-                    // initConnect();
-                    testInitConnect();
+                     initConnect();
+                    //testInitConnect();
                 }
             })
 
@@ -129,28 +126,22 @@
                 })
 
                 $('#collectionUserInfo').on('hidden.bs.modal', function (event) {
-                    var modal = $(this);
-                    var userName = $("#userName").val();
-                    var groups = $("#groups").val();
-                    if (!userName || !groups) {
-                        modal.modal('show');
-                        return;
-                    }
-                    initSignalr({
+                    // var modal = $(this);
+                    var groups = $("#groups").val()||'';
+                    var connect=initSignalr({
                         delay: 0,
-                        url: 'http://localhost:50001/notify-hub?userId=' + userName + '&group=' + groups,
+                        url: 'http://localhost:50001/notify-hub?userId=' + vm.userInfo.userName + '&group=' + groups,
                         loggingLevel: signalR.LogLevel.Error,
                         onNotify: function (data) {
                             $logs.val($logs.val() + '\r\nOnNotify..........' + JSON.stringify(data));
                         },
                         onStarted: function () {
-                            vm.$set(vm.userInfo, 'userName', userName);
+                            vm.$set(vm.userInfo, 'connectionId', connect.connectionId);
                             vm.$set(vm.userInfo, 'groups', groups);
                             vm.logs.push('连接成功');
                         }
                     });
                 })
-
             }
         })
     </script>

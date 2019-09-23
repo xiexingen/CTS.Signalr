@@ -31,6 +31,8 @@ namespace Core.Signalr.Template.Web
         public IConfiguration Configuration { get; }
         private readonly IWebHostEnvironment _webEnv;
 
+        readonly string corsPolicy = "CorsPolicy ";
+
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
@@ -67,17 +69,19 @@ namespace Core.Signalr.Template.Web
                 };
             });
 
-            services.AddCors(options => options.AddPolicy("CorsPolicy", builder =>
+            services.AddCors(options => options.AddPolicy(corsPolicy, builder =>
             {
-                builder.WithOrigins(appSetting.CORS.Split(","))
-                       //.SetIsOriginAllowed(origin => true)
-                       .AllowAnyHeader()
-                       .AllowAnyMethod()
-                       .AllowCredentials();
+                builder
+                      .SetIsOriginAllowedToAllowWildcardSubdomains()
+                      .WithOrigins(appSetting.CORS.Split(","))
+                      .AllowAnyMethod()
+                      .AllowCredentials()
+                      .AllowAnyHeader()
+                      .Build();
             }));
 
             services.AddControllers()
-                .AddNewtonsoftJson(options =>options.SerializerSettings.ContractResolver =new CamelCasePropertyNamesContractResolver())
+                .AddNewtonsoftJson(options => options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver())
                 .ConfigureApiBehaviorOptions(options =>
                 {
                     options.InvalidModelStateResponseFactory = context =>
@@ -90,7 +94,7 @@ namespace Core.Signalr.Template.Web
                     };
                 })
                 .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
-            
+
             // 添加Signalr
             services.AddSignalR(config =>
             {
@@ -117,7 +121,7 @@ namespace Core.Signalr.Template.Web
                      {
                          AbortOnConnectFail = false,
                          // Password = "changeme",
-                         ChannelPrefix="__signalr_",
+                         ChannelPrefix = "__signalr_",
                      };
                      //config.EndPoints.Add(IPAddress.Loopback, 0);
                      //config.SetDefaultPorts();
@@ -159,7 +163,7 @@ namespace Core.Signalr.Template.Web
             loggerFactory.AddLog4Net();
 
             app.UseStaticFiles();
-            app.UseCors("CorsPolicy");
+            app.UseCors(corsPolicy);
 
             app.UseAuthentication();
             app.UseAuthorization();

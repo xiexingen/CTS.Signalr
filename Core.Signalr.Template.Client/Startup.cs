@@ -1,12 +1,15 @@
 using Core.Signalr.Template.Client.Models;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
 
 namespace Core.Signalr.Template.Client
 {
@@ -30,14 +33,20 @@ namespace Core.Signalr.Template.Client
 
             // services.AddHostedService<ClearBackGroundService>();
 
-            services.AddAuthentication(options =>
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                 .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, cookieOption =>
+                 {
+                     cookieOption.LoginPath = "/Account/Login";
+                     cookieOption.AccessDeniedPath = "/Account/Login";
+                 });
+
+            services.Configure<CookiePolicyOptions>(options =>
             {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultForbidScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.CheckConsentNeeded = context => true;
+                options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            services.AddMvc()
+            services.AddMvc(options => options.Filters.Add(new AuthorizeFilter()))
                 .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
         }
 
@@ -59,7 +68,7 @@ namespace Core.Signalr.Template.Client
 
             app.UseAuthentication();
             app.UseAuthorization();
-
+            
             app.UseRouting();
 
             app.UseEndpoints(endpoints =>

@@ -5,6 +5,8 @@
  * @param {string} option.loggingLevel 日志级别,默认为 Error
  * @param {number} option.delay 延迟连接 默认为3000毫秒
  * @param {function} option.onStarted 启动时触发
+ * @param {function} option.onLine 启动时触发
+ * @param {function} option.offLine 启动时触发
  * @returns {object} 连接的实例
  */
 function initSignalr(option) {
@@ -32,6 +34,10 @@ function initSignalr(option) {
     });
 
     connection.on('OnNotify', config.onNotify);
+
+    connection.on('OnLine', config.onLine);
+
+    connection.on('OffLine', config.offLine);
 
     setTimeout(function () {
         connection.start().then(function (data) {

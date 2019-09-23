@@ -56,7 +56,7 @@ namespace Core.Signalr.Template.Web.Cores
             return (await GetDatabase().SetMembersAsync($"{PREFIXUSER}{userId}"))
                 .Select(m=>m.ToString()).ToList();
         }
-        
+
         public async Task RemoveConnectForUserAsync(string userId,string connectionId)
         {
             await GetDatabase().SetRemoveAsync($"{PREFIXUSER}{userId}", connectionId);
@@ -80,6 +80,15 @@ namespace Core.Signalr.Template.Web.Cores
                 UserId =m.Value.ToString()                
             }).ToList();
             return users;
+        }
+
+        /// <summary>
+        /// 清空Redis库
+        /// </summary>
+        /// <returns></returns>
+        public async Task FlushDatabaseAsync()
+        {
+            await GetServer().FlushDatabaseAsync(_appSetting.Value.RedisCache.DatabaseId);
         }
 
         //public async Task RemoveUserForGroupAsync(string group, string userId)

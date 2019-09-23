@@ -1,4 +1,5 @@
 ﻿using Core.Signalr.Template.Web.Cores;
+using Core.Signalr.Template.Web.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -23,9 +24,9 @@ namespace Core.Signalr.Template.Web.Hubs
     {
         Task OnNotify(object data);
 
-        //Task OnJoinGroup(object data);
+        Task OnLine(object data);
 
-        //Task OnLeaveGroup(object data);
+        Task OffLine(object data);
     }
 
 
@@ -51,6 +52,7 @@ namespace Core.Signalr.Template.Web.Hubs
             {
                 await _signalrRedisHelper.AddConnectForUserAsync(userId, Context.ConnectionId);
                 await JoinToGroup(userId, Context.ConnectionId, groups?.Split(','));
+                await DealOnLineNotify(userId, Context.ConnectionId);
             }
             await base.OnConnectedAsync();
         }
@@ -62,6 +64,7 @@ namespace Core.Signalr.Template.Web.Hubs
             if (!string.IsNullOrWhiteSpace(userId))
             {
                 await _signalrRedisHelper.RemoveConnectForUserAsync(userId, Context.ConnectionId);
+                await DealOffLineNotify(userId,Context.ConnectionId);
             }
             await LeaveFromGroup(Context.ConnectionId, groups?.Split(','));
             await base.OnDisconnectedAsync(exception);
@@ -102,6 +105,40 @@ namespace Core.Signalr.Template.Web.Hubs
                     // await Clients.Group(group).OnLeaveGroup(new { ConnectId = connectionId, GroupName = group });
                 }
             }
+        }
+
+        /// <summary>
+        /// 处理上线通知(只有用户第一个连接才通知)
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="connectionId"></param>
+        /// <returns></returns>
+        private async Task DealOnLineNotify(string userId,string connectionId) 
+        { 
+            var userConnections= await _signalrRedisHelper.GetConnectsByUserAsync(userId);
+            await Clients.All.OnLine(new OnLineData()
+            {
+                UserId = userId,
+                ConnectionId = connectionId,
+                IsFirst = userConnections.Count == 1
+            });
+        }
+
+        /// <summary>
+        /// 处理下线通知(只有当用户一个连接都没了 才算下线)
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="connectionId"></param>
+        /// <returns></returns>
+        private async Task DealOffLineNotify(string userId,string connectionId)
+        {
+            var userConnections = await _signalrRedisHelper.GetConnectsByUserAsync(userId);
+            await Clients.All.OnLine(new OffLineData()
+            {
+                UserId = userId,
+                ConnectionId = connectionId,
+                IsLast = userConnections.Count == 0
+            });
         }
     }
 }

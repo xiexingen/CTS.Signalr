@@ -9,6 +9,10 @@
         public RedisCache RedisCache { set;get;}
         public RedisCache SignalrRedisCache { set; get; }
         public string CORS { set;get;}
+        /// <summary>
+        /// 是否主站点(用于运行清理任务等)
+        /// </summary>
+        public bool MainSite { set;get;}
     }
 
     /// <summary>

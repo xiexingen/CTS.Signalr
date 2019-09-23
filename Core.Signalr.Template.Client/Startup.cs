@@ -1,3 +1,4 @@
+using Core.Signalr.Template.Client.Helpers;
 using Core.Signalr.Template.Client.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -32,6 +33,8 @@ namespace Core.Signalr.Template.Client
             var appSetting = appSection.Get<JwtSetting>();
 
             // services.AddHostedService<ClearBackGroundService>();
+
+            services.AddSingleton<SignalrHelper>();
 
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                  .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, cookieOption =>
@@ -73,6 +76,10 @@ namespace Core.Signalr.Template.Client
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapControllerRoute(
+                    name: "api",
+                    pattern: "api/{controller=Values}/{action=Index}/{id?}");
+
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");

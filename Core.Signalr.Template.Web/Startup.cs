@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Serialization;
 using StackExchange.Redis;
 using System;
@@ -104,14 +105,7 @@ namespace Core.Signalr.Template.Web
                 }
             })
             // 支持MessagePack
-            .AddMessagePackProtocol(option =>
-            {
-                option.FormatterResolvers = new List<MessagePack.IFormatterResolver>()
-                {
-                    MessagePack.Resolvers.DynamicGenericResolver.Instance,
-                    MessagePack.Resolvers.StandardResolver.Instance
-                };
-            })
+            .AddMessagePackProtocol()
             // 使用redis做底板 支持横向扩展 Scale-out
             .AddStackExchangeRedis(o =>
              {

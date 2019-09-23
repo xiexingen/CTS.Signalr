@@ -1,4 +1,5 @@
-﻿@{
+﻿@inject Microsoft.Extensions.Configuration.IConfiguration Configuration;
+@{
     ViewData["Title"] = "Signalr Demo";
 }
 
@@ -20,7 +21,7 @@
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active" id="project" role="tabpanel" aria-labelledby="home-tab">
                         <div class="card-body">
-                            <button class="btn btn-primary" type="button">模拟分配责任人</button>
+                            <button class="btn btn-primary" v-on:click="assignTaskToUser" type="button">模拟推送待办(当前组)</button>
                         </div>
                     </div>
                     <div class="tab-pane fade" id="chat" role="tabpanel" aria-labelledby="profile-tab">
@@ -94,29 +95,21 @@
                     }
                 },
                 methods: {
-
+                    assignTaskToUser: function () {
+                        var that = this;
+                        $.ajax({
+                            type: 'POST',
+                            url: '/api/ServerProxy/AssignTaskToUser',
+                            data: {
+                                groups:that.userInfo.groups
+                            }
+                        })
+                    }
                 },
                 mounted: function () {
                      initConnect();
-                    //testInitConnect();
                 }
             })
-
-            function testInitConnect() {
-                initSignalr({
-                    delay: 0,
-                    url: 'http://localhost:50001/notify-hub?userId=xiexingen&group=AAA,BBB',
-                    loggingLevel: signalR.LogLevel.Error,
-                    onNotify: function (data) {
-                        $logs.val($logs.val() + '\r\nOnNotify..........' + JSON.stringify(data));
-                    },
-                    onStarted: function () {
-                        vm.$set(vm.userInfo, 'userName','xiexingen');
-                        vm.$set(vm.userInfo, 'groups','AAA,BBB');
-                        vm.logs.push('连接成功');
-                    }
-                });
-            }
 
             function initConnect() {
                 $("#collectionUserInfo").modal({
@@ -125,15 +118,18 @@
                     backdrop: 'static'
                 })
 
-                $('#collectionUserInfo').on('hidden.bs.modal', function (event) {
-                    // var modal = $(this);
+                $('#collectionUserInfo').on('hidden.bs.modal', function () {
                     var groups = $("#groups").val()||'';
                     var connect=initSignalr({
                         delay: 0,
-                        url: 'http://localhost:50001/notify-hub?userId=' + vm.userInfo.userName + '&group=' + groups,
+                        url:`@Configuration.GetSection("SignalrAddress").Value`+`notify-hub?userId=${vm.userInfo.userName}&group=${groups}`,
                         loggingLevel: signalR.LogLevel.Error,
-                        onNotify: function (data) {
-                            $logs.val($logs.val() + '\r\nOnNotify..........' + JSON.stringify(data));
+                        onNotify: dealNotify,
+                        onLine: function (data) {
+                            vm.logs.push(`新连接上线：${JSON.stringify(data)}`);
+                        },
+                        offLine: function (data) {
+                            vm.logs.push(`连接下线：${JSON.stringify(data)}`);
                         },
                         onStarted: function () {
                             vm.$set(vm.userInfo, 'connectionId', connect.connectionId);
@@ -142,6 +138,44 @@
                         }
                     });
                 })
+            }
+
+            // 处理推送逻辑
+            function dealNotify(data) {
+                data = JSON.parse(data);
+                switch (data.TenantType) {
+                    case "project":
+                        dealProject(data);
+                        break;
+                    case "chat":
+                        dealChat(data);
+                        break;
+                    case "logout":
+                        dealLogout(data);
+                        break;
+                    default:
+                }
+            }
+
+            // 项目
+            function dealProject(data) {
+                switch (data.MethodType) {
+                    // 待办提示
+                    case "tipCount":
+                        // 此处模拟待办+1，实际应该为通过api获取
+                        vm.logs.push(`接收到服务器端推送:${JSON.stringify(data)}`);
+                        vm.$set(vm.project, 'tipCount', vm.project.tipCount+1);
+                        break;
+                    default: break;
+                }
+            }
+            // 聊天
+            function dealChat(data) {
+
+            }
+            // 登录互斥
+            function dealLogout(data) {
+
             }
         })
     </script>

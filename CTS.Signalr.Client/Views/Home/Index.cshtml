@@ -97,7 +97,7 @@
                 data: {
                     // 用户信息
                     userInfo: {
-                        userName: '@User.Identity.Name',
+                        userName: '@Html.Raw(User.Identity.Name)',
                         groups: '',
                         connectId:''
                     },
@@ -139,6 +139,8 @@
                                 selectUsers: vm.chat.selectUsers.join(','),
                                 message:vm.chat.message
                             }
+                        }).then(function () {
+                            vm.chat.message = '';
                         })
                     }
                 },

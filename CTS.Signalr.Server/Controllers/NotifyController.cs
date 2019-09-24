@@ -1,6 +1,7 @@
 ﻿using CTS.Signalr.Server.Cores;
 using CTS.Signalr.Server.Dtos;
 using CTS.Signalr.Server.Hubs;
+using MessagePack;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -35,7 +36,9 @@ namespace CTS.Signalr.Server.Controllers
         {
             _logger.LogDebug($"post:{JsonConvert.SerializeObject(input)}");
             var hasGroups= !string.IsNullOrWhiteSpace(input.GroupId);
-            input.NotifyObj=JsonConvert.SerializeObject(input.NotifyObj);
+
+            // input.NotifyObj= MessagePackSerializer.Deserialize<NotifyData>(MessagePackSerializer.SerializeUnsafe(input));
+            input.NotifyObj = JsonConvert.SerializeObject(input.NotifyObj);
             if (hasGroups)
             {
                 await NotifyWithGroup(input);

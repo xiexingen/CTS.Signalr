@@ -1,5 +1,8 @@
-﻿namespace CTS.Signalr.Server.Dtos
+﻿using MessagePack;
+
+namespace CTS.Signalr.Server.Dtos
 {
+    [MessagePackObject(keyAsPropertyName: true)]
     public class NotifyData
     {
         /// <summary>

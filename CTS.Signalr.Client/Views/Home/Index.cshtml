@@ -1,0 +1,266 @@
+﻿@inject Microsoft.Extensions.Configuration.IConfiguration Configuration;
+@{
+    ViewData["Title"] = "Signalr Demo";
+}
+
+<div id="pageContent">
+    <template>
+        <div class="row">
+            <div class="col-sm-4">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#project" role="tab" aria-controls="home" aria-selected="true">项目中心&nbsp;<span class="badge badge-danger">{{project.tipCount}}</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#chat" role="tab" aria-controls="profile" aria-selected="false">聊天&nbsp;</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#logout" role="tab" aria-controls="contact" aria-selected="false">登录互斥</a>
+                    </li>
+                </ul>
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="project" role="tabpanel" aria-labelledby="home-tab">
+                        <div class="card-body">
+                            <button class="btn btn-primary" v-on:click="assignTaskToUser" type="button">模拟推送待办(当前组)</button>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="chat" role="tabpanel" aria-labelledby="profile-tab">
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="exampleFormControlSelect2">线组列表</label>
+                                <select v-model="chat.selectGroups" multiple class="form-control">
+                                    <option v-for="item in onlineGroups">{{item}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="exampleFormControlSelect2">用户列表</label>
+                                <select v-model="chat.selectUsers" multiple class="form-control">
+                                    <option v-for="item in onlineUsers">{{item}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="exampleFormControlSelect2">内容:</label>
+                                <textarea v-model="chat.message" class="form-control" placeholder="请输入内容"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <button v-on:click="handleSendMsg" class="btn btn-primary">发送</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="logout" role="tabpanel" aria-labelledby="contact-tab">
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-8">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <p>当前用户:{{userInfo.userName}}   加入的组:{{userInfo.groups}} - 连接Id:{{userInfo.connectionId}}</p>
+                            <p class="users">在线用户：<span class="badge badge-info" v-for="item in onlineUsers">{{item}}</span></p>
+                        </div>
+                    </div>
+                    <textarea id="logs" rows="20" class="form-control">{{logs.join('\r\n')}}</textarea>
+                </div>
+            </div>
+        </div>
+    </template>
+    <div class="modal fade" id="collectionUserInfo" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">请输入连接的组</h5>
+                </div>
+                <div class="modal-body">
+                    <form id="formInfo">
+                        <div class="form-group">
+                            <label for="message-text" class="col-form-label">组:</label>
+                            <textarea autocomplete="off" placeholder="多个以,隔开" required class="form-control" id="groups"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" data-dismiss="modal">连接到服务器</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts{
+
+    <script src="~/js/initSignalr.js" asp-append-version="true"></script>
+    <script>
+        $(function () {
+            var notifyUrl = '@Configuration.GetSection("SignalrAddress").Value';
+            var vm = new Vue({
+                el: '#pageContent',
+                data: {
+                    // 用户信息
+                    userInfo: {
+                        userName: '@User.Identity.Name',
+                        groups: '',
+                        connectId:''
+                    },
+                    onlineUsers: [], // 在线用户列表
+                    onlineGroups:[], // 在线组列表
+                    // 日志
+                    logs: [],
+                    // 项目信息
+                    project: {
+                        tipCount: 0, // 提示数量
+                    },
+                    // 聊天
+                    chat: {
+                        selectGroups: [], // 聊天窗口中选择的组
+                        selectUsers: [],// 聊天窗口中选择的人
+                        message: '',// 聊天窗口中输入框
+                    },
+                },
+                methods: {
+                    assignTaskToUser: function () {
+                        var that = this;
+                        $.ajax({
+                            type: 'POST',
+                            url: '/api/ServerProxy/AssignTaskToUser',
+                            data: {
+                                groups:that.userInfo.groups
+                            }
+                        })
+                    },
+                    getOnlineUsers: function () {
+                        getOnlineUsers();
+                    },
+                    handleSendMsg: function () {
+                        $.ajax({
+                            type: 'POST',
+                            url: '/api/ServerProxy/SendMessage',
+                            data:{
+                                selectGroups: vm.chat.selectGroups.join(','),
+                                selectUsers: vm.chat.selectUsers.join(','),
+                                message:vm.chat.message
+                            }
+                        })
+                    }
+                },
+                mounted: function () {
+                     initConnect();
+                }
+            })
+
+            function initConnect() {
+                $("#collectionUserInfo").modal({
+                    keyboard: false,
+                    show: true,
+                    backdrop: 'static'
+                })
+
+                $('#collectionUserInfo').on('hidden.bs.modal', function () {
+                    var groups = $("#groups").val()||'';
+                    var connect=initSignalr({
+                        delay: 0,
+                        url:`${notifyUrl}notify-hub?userId=${vm.userInfo.userName}&group=${groups}`,
+                        loggingLevel: signalR.LogLevel.Error,
+                        onNotify: dealNotify,
+                        onLine: function (data) {
+                            if (data.IsFirst) {
+                                getOnlineUsers();
+                            }
+                            getOnlineGroups();
+                            vm.logs.push(`新连接上线：${JSON.stringify(data)}`);
+                        },
+                        offLine: function (data) {
+                            if (data.IsLast) {
+                                getOnlineUsers();
+                            }
+                            getOnlineGroups();
+                            vm.logs.push(`连接下线：${JSON.stringify(data)}`);
+                        },
+                        onStarted: function () {
+                            getOnlineUsers();
+                            getOnlineGroups();
+                            vm.$set(vm.userInfo, 'connectionId', connect.connectionId);
+                            vm.$set(vm.userInfo, 'groups', groups);
+                            vm.logs.push('连接成功');
+                        }
+                    });
+                })
+            }
+
+            // 获取在线用户列表
+            function getOnlineUsers() {
+                 $.ajax({
+                    type: 'GET',
+                    dataType: 'json',
+                    url: `${notifyUrl}api/Users?userId=${vm.userInfo.userName}`
+                 }).then(function (data) {
+                     vm.$set(vm, 'onlineUsers',data);
+                })
+            }
+
+            //获取在线组列表
+            function getOnlineGroups() {
+                 $.ajax({
+                    type: 'GET',
+                    dataType: 'json',
+                    url: `${notifyUrl}api/Groups?userId=${vm.userInfo.userName}`
+                 }).then(function (data) {
+                     vm.$set(vm, 'onlineGroups',data);
+                })
+            }
+
+            // 处理推送逻辑
+            function dealNotify(data) {
+                data = JSON.parse(data);
+                switch (data.TenantType) {
+                    case "project":
+                        dealProject(data);
+                        break;
+                    case "chat":
+                        dealChat(data);
+                        break;
+                    case "logout":
+                        dealLogout(data);
+                        break;
+                    default:
+                }
+            }
+
+            // 项目
+            function dealProject(data) {
+                switch (data.MethodType) {
+                    // 待办提示
+                    case "tipCount":
+                        // 此处模拟待办+1，实际应该为通过api获取
+                        vm.logs.push(`接收到服务器端推送:${JSON.stringify(data)}`);
+                        vm.$set(vm.project, 'tipCount', vm.project.tipCount+1);
+                        break;
+                    default: break;
+                }
+            }
+
+            // 聊天
+            function dealChat(data) {
+                switch (data.MethodType) {
+                    // 待办提示
+                    case "message":
+                        vm.logs.push(`接收到服务器端推送:${JSON.stringify(data)}`);
+                        break;
+                    default: break;
+                }
+            }
+            // 登录互斥
+            function dealLogout(data) {
+                switch (data.MethodType) {
+                    // 待办提示
+                    case "login":
+                        // 此处模拟待办+1，实际应该为通过api获取
+                        vm.logs.push(`接收到服务器端推送:${JSON.stringify(data)}`);
+                        alert('该账户以在其他地方登陆！')
+                        location.href="/api/Account/LoginOut"
+                        break;
+                    default: break;
+                }
+            }
+        })
+    </script>
+}

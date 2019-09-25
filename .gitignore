@@ -3,3 +3,5 @@ obj
 bin
 /Core.Signalr.Template.Web/AppData/logs
 /CTS.Signalr.Server/AppData/logs
+/CTS.Signalr.Server/Properties/PublishProfiles
+/CTS.Signalr.Server/CTS.Signalr.Server.csproj.user

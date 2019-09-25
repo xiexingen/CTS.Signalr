@@ -146,7 +146,8 @@ namespace CTS.Signalr.Server
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-            }          
+            }
+            app.UseHsts();
 
             loggerFactory.AddLog4Net();
 

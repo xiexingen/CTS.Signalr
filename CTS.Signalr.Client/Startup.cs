@@ -66,7 +66,8 @@ namespace CTS.Signalr.Client
             {
                 app.UseExceptionHandler("/Home/Error");
             }
-            
+            app.UseHsts();
+
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthentication(); // todo

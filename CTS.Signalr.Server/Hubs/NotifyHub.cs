@@ -114,13 +114,13 @@ namespace CTS.Signalr.Server.Hubs
         /// <param name="connectionId"></param>
         /// <returns></returns>
         private async Task DealOnLineNotify(string userId,string connectionId) 
-        { 
-            var userConnections= await _signalrRedisHelper.GetConnectsByUserAsync(userId);
+        {
+            var userConnectCount = await _signalrRedisHelper.GetConnectsCountByUserAsync(userId);
             await Clients.All.OnLine(new OnLineData()
             {
                 UserId = userId,
                 ConnectionId = connectionId,
-                IsFirst = userConnections.Count == 1
+                IsFirst = userConnectCount == 1
             });
         }
 
@@ -132,12 +132,12 @@ namespace CTS.Signalr.Server.Hubs
         /// <returns></returns>
         private async Task DealOffLineNotify(string userId,string connectionId)
         {
-            var userConnections = await _signalrRedisHelper.GetConnectsByUserAsync(userId);
-            await Clients.All.OnLine(new OffLineData()
+            var userConnectCount = await _signalrRedisHelper.GetConnectsCountByUserAsync(userId);
+            await Clients.All.OffLine(new OffLineData()
             {
                 UserId = userId,
                 ConnectionId = connectionId,
-                IsLast = userConnections.Count == 0
+                IsLast = userConnectCount == 0
             });
         }
     }

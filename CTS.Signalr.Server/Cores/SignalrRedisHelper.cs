@@ -2,6 +2,7 @@
 using CTS.Signalr.Server.Models;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,10 +13,13 @@ namespace CTS.Signalr.Server.Cores
     {
         private readonly IOptions<AppSetting> _appSetting;
         private readonly ConnectionMultiplexer _connectionMultiplexer;
+        private static IDatabase _database;
+
+        private RedisValue token = Environment.MachineName;
+
         public static readonly string PREFIXUSER= "signalr_u_";
         public static readonly string PREFIXGROUP = "signalr_g_";
 
-        private static IDatabase _database;
 
         public SignalrRedisHelper(IOptions<AppSetting> redisSetting)
         {
@@ -55,6 +59,16 @@ namespace CTS.Signalr.Server.Cores
         }
 
         /// <summary>
+        /// 查询指定用户的连接数
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        public async Task<long> GetConnectsCountByUserAsync(string userId)
+        {
+            return await GetDatabase().SetLengthAsync($"{PREFIXUSER}{userId}");
+        }
+
+        /// <summary>
         /// 获取当前在线的所有用户Id列表
         /// </summary>
         /// <returns></returns>
@@ -63,6 +77,7 @@ namespace CTS.Signalr.Server.Cores
             var keys=GetServer().Keys(_appSetting.Value.RedisCache.DatabaseId, pattern:$"{PREFIXUSER}*",int.MaxValue);
             return keys.Select(m=>m.ToString().Substring(PREFIXUSER.Length));
         }
+
 
         /// <summary>
         /// 获取在线的所有组列表

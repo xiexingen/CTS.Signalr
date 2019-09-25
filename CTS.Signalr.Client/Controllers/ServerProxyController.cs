@@ -1,6 +1,7 @@
 ﻿using CTS.Signalr.Client.Dtos;
 using CTS.Signalr.Client.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CTS.Signalr.Client.Controllers
@@ -22,7 +23,7 @@ namespace CTS.Signalr.Client.Controllers
             await _signalrHelper.PushNotifyAsync(new Dtos.Send()
             {
                 ExcludeUsers=true,
-                GroupId = groups,
+                GroupIds = groups,
                 NotifyObj = new
                 {
                     TenantType = "project",
@@ -41,7 +42,7 @@ namespace CTS.Signalr.Client.Controllers
         {
             await _signalrHelper.PushNotifyAsync(new Dtos.Send()
             {
-                GroupId = input.SelectGroups,
+                GroupIds = input.SelectGroups,
                 UserIds=input.SelectUsers,
                 NotifyObj = new
                 {
@@ -50,6 +51,30 @@ namespace CTS.Signalr.Client.Controllers
                     Message=$"{User.Identity.Name}:{input.Message}"
                 }
             });
+        }
+
+        /// <summary>
+        /// 触发文件下载
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        public async Task TriggerFileDownLoad([FromForm]string connect)
+        {
+            // 请无视代码问题，模拟后台打包，三秒后通知
+            Task.Run(() =>
+            {
+               Thread.Sleep(3000);
+                _signalrHelper.PushNotifyToConnectsAsync(new Dtos.SendToConnects()
+                {
+                    Connects = connect,
+                    NotifyObj = new
+                    {
+                        TenantType = "fileDownload",
+                        Content = $"文件打包完成，下载地址为http://blogs.xxgtalk.cn"
+                    }
+                });
+            });
+            await Task.CompletedTask;
         }
     }
 }

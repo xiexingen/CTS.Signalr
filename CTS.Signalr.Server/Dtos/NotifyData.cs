@@ -8,7 +8,7 @@ namespace CTS.Signalr.Server.Dtos
         /// <summary>
         /// 组名集合(多个以,隔开)
         /// </summary>
-        public string GroupId {set;get;}
+        public string GroupIds {set;get;}
         /// <summary>
         /// 用户Id列表(多个以，隔开)
         /// </summary>

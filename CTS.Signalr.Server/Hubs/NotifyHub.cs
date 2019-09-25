@@ -45,9 +45,9 @@ namespace CTS.Signalr.Server.Hubs
         public override async Task OnConnectedAsync()
         {
             //await Clients.All.OnNotify(new { UserId= Context.User.Identity.Name, Name=Context.User.Identity.Name, ConnectId = Context.ConnectionId });
-
             var userId= Context.User.Identity.Name;
             var groups=Context.GetHttpContext().Request.Query["group"].FirstOrDefault();
+            _logger.LogDebug($"OnConnectedAsync----userId:{userId},groups:{groups},connectionId:{ Context.ConnectionId}");
             if (!string.IsNullOrWhiteSpace(userId))
             {
                 await _signalrRedisHelper.AddConnectForUserAsync(userId, Context.ConnectionId);
@@ -61,6 +61,7 @@ namespace CTS.Signalr.Server.Hubs
         {
             var userId = Context.User.Identity.Name;
             var groups = Context.GetHttpContext().Request.Query["group"].FirstOrDefault();
+            _logger.LogDebug($"OnDisconnectedAsync----userId:{userId},groups:{groups},connectionId:{ Context.ConnectionId}");
             if (!string.IsNullOrWhiteSpace(userId))
             {
                 await _signalrRedisHelper.RemoveConnectForUserAsync(userId, Context.ConnectionId);

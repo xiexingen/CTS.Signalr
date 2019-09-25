@@ -17,6 +17,9 @@
                     <li class="nav-item">
                         <a class="nav-link" data-toggle="tab" href="#logout" role="tab" aria-controls="contact" aria-selected="false">登录互斥</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#fileDownLoad" role="tab" aria-controls="contact" aria-selected="false">文件下载</a>
+                    </li>
                 </ul>
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active" id="project" role="tabpanel" aria-labelledby="home-tab">
@@ -48,7 +51,14 @@
                         </div>
                     </div>
                     <div class="tab-pane fade" id="logout" role="tabpanel" aria-labelledby="contact-tab">
-
+                        <div class="card-body">
+                            可以使用同一个账号，在不同浏览器中登录来模拟异地登录的场景。
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="fileDownLoad" role="tabpanel" aria-labelledby="contact-tab">
+                        <div class="card-body">
+                            <button v-on:click="handleFileDownload" title="后台模拟文件打包，然后推送给当前页面" class="btn btn-primary">打包下载文件</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -100,7 +110,7 @@
                     userInfo: {
                         userName: '@Html.Raw(User.Identity.Name)',
                         groups: '',
-                        connectId:''
+                        connectionId:''
                     },
                     onlineUsers: [], // 在线用户列表
                     onlineGroups:[], // 在线组列表
@@ -142,6 +152,16 @@
                             }
                         }).then(function () {
                             vm.chat.message = '';
+                        })
+                    },
+                    handleFileDownload: function () {
+                        var that = this;
+                        $.ajax({
+                            type: 'POST',
+                            url: '/api/ServerProxy/TriggerFileDownLoad',
+                            data:{
+                                connect:that.userInfo.connectionId
+                            }
                         })
                     }
                 },
@@ -224,6 +244,9 @@
                     case "logout":
                         dealLogout(data);
                         break;
+                     case "fileDownload":
+                        dealFileDownload(data);
+                        break;
                     default:
                 }
             }
@@ -251,6 +274,7 @@
                     default: break;
                 }
             }
+
             // 登录互斥
             function dealLogout(data) {
                 switch (data.MethodType) {
@@ -264,6 +288,11 @@
                         break;
                     default: break;
                 }
+            }
+
+            // 文件下载
+            function dealFileDownload(data) {
+                vm.logs.push(`接收到服务器端推送:${JSON.stringify(data)}`);
             }
         })
     </script>

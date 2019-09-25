@@ -150,15 +150,16 @@ namespace CTS.Signalr.Server
             app.UseHsts();
 
             loggerFactory.AddLog4Net();
-
+            //app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCors(corsPolicy);
-
+            //app.UseCookiePolicy();
             app.UseRouting();
 
             app.UseAuthentication();
             app.UseAuthorization();
-            
+            //app.UseSession();
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(

@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace CTS.Signalr.Server.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/[controller]/[action]")]
     [AllowAnonymous]
     public class NotifyController : ControllerBase
     {
@@ -35,7 +35,7 @@ namespace CTS.Signalr.Server.Controllers
         public async Task Post(NotifyData input)
         {
             _logger.LogDebug($"post:{JsonConvert.SerializeObject(input)}");
-            var hasGroups= !string.IsNullOrWhiteSpace(input.GroupId);
+            var hasGroups= !string.IsNullOrWhiteSpace(input.GroupIds);
 
             // input.NotifyObj= MessagePackSerializer.Deserialize<NotifyData>(MessagePackSerializer.SerializeUnsafe(input));
             input.NotifyObj = JsonConvert.SerializeObject(input.NotifyObj);
@@ -49,13 +49,27 @@ namespace CTS.Signalr.Server.Controllers
             }
         }
 
+        /// <summary>
+        /// 推送给指定连接
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public async Task PostConnects(NotifyConnectsData input) 
+        {
+            _logger.LogDebug($"post:{JsonConvert.SerializeObject(input)}");
+            input.NotifyObj = JsonConvert.SerializeObject(input.NotifyObj);
+            await _notifyHub.Clients.Clients(input.Connects.Split(',')).OnNotify(input.NotifyObj);
+        }
+
+
         private async Task NotifyWithGroup(NotifyData input) 
         {
             // 组连接信息(连接Id、用户Id)
             var groupUsers = new List<UserConnection>();
             // 指定的用户连接Dictionary列表
             var dictUserConnections = await GetUserConnectDict(input.UserIds);
-            var groups = input.GroupId.Split(',');
+            var groups = input.GroupIds.Split(',');
             foreach (var group in groups)
             {
                 var groupUser = await _redis.GetUsersByGroupAsync(group);

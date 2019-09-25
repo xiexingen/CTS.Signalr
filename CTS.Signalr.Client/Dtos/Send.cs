@@ -13,12 +13,12 @@ namespace CTS.Signalr.Client.Dtos
         public Send()
         {
             UserIds = string.Empty;
-            GroupId= string.Empty;
+            GroupIds= string.Empty;
         }
         /// <summary>
         /// 接受消息的组 值为项目Id
         /// </summary>
-        public string GroupId { set; get; }
+        public string GroupIds { set; get; }
 
         /// <summary>
         /// 用户Id列表
@@ -30,6 +30,18 @@ namespace CTS.Signalr.Client.Dtos
         /// </summary>
         public bool ExcludeUsers { set; get; }
 
+        public virtual object NotifyObj { set; get; }
+    }
+
+    /// <summary>
+    /// 推送给指定连接
+    /// </summary>
+    public class SendToConnects
+    {
+        /// <summary>
+        /// 连接Id 多个以,隔开
+        /// </summary>
+        public string Connects { set; get; }
         public virtual object NotifyObj { set; get; }
     }
 }

@@ -82,7 +82,8 @@ namespace CTS.Signalr.Server.Controllers
             // 组连接信息(连接Id、用户Id)
             var groupUsers = new List<UserConnection>();
             // 指定的用户连接Dictionary列表
-            var dictUserConnections = await GetUserConnectDict(input.UserIds);
+            // var dictUserConnections = await GetUserConnectDict(input.UserIds);
+            var users=input.UserIds.Split(',');
             var groups = input.GroupIds.Split(',');
             foreach (var group in groups)
             {
@@ -93,7 +94,7 @@ namespace CTS.Signalr.Server.Controllers
 
             // 要通知的连接Id列表(排除||包含 组中指定用户进行推送)
             var notifyConnections= groupUsers
-                                    .Where(m => dictUserConnections.Keys.Contains(m.UserId)!= input.ExcludeUsers)
+                                    .Where(m => users.Contains(m.UserId)!= input.ExcludeUsers)
                                     .Select(m => m.ConnectionId)
                                     .ToList();            
             await _notifyHub.Clients.Clients(notifyConnections).OnNotify(input.NotifyObj);

@@ -58,6 +58,7 @@
                     <div class="tab-pane fade" id="fileDownLoad" role="tabpanel" aria-labelledby="contact-tab">
                         <div class="card-body">
                             <button v-on:click="handleFileDownload" title="后台模拟文件打包，然后推送给当前页面" class="btn btn-primary">打包下载文件</button>
+                            <button v-on:click="handleOtherTab" title="模拟后台更新，然后推送给当前用户的其他tab页" class="btn btn-primary">推送当且用户其他页面更新操作</button>
                         </div>
                     </div>
                 </div>
@@ -159,8 +160,21 @@
                         $.ajax({
                             type: 'POST',
                             url: '/api/ServerProxy/TriggerFileDownLoad',
+                            data: {
+                               ConnectionId:that.userInfo.connectionId
+                            }
+                        })
+                    },
+                    handleOtherTab: function () {
+                        var that = this;
+                        $.ajax({
+                            type: 'POST',
+                            url: '/api/ServerProxy/TriggerFileDownLoad',
                             data:{
-                                connect:that.userInfo.connectionId
+                                 UserId:that.userInfo.userName,
+                                ConnectionId: that.userInfo.connectionId,
+                                ExcludeConnectId: true,
+                                Content:'当前用户其他tab页操作，推送过来的内容'
                             }
                         })
                     }

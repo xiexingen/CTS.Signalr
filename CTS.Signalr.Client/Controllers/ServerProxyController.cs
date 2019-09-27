@@ -58,7 +58,7 @@ namespace CTS.Signalr.Client.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public async Task TriggerFileDownLoad([FromForm]string connect)
+        public async Task TriggerFileDownLoad([FromForm]SendNotifyConnectsInput input)
         {
             // 请无视代码问题，模拟后台打包，三秒后通知
             Task.Run(() =>
@@ -66,11 +66,13 @@ namespace CTS.Signalr.Client.Controllers
                Thread.Sleep(3000);
                 _signalrHelper.PushNotifyToConnectsAsync(new Dtos.SendToConnects()
                 {
-                    Connects = connect,
+                    ConnectionId = input.ConnectionId,
+                    ExcludeConnectId=input.ExcludeConnectId,
+                    UserId=input.UserId,
                     NotifyObj = new
                     {
                         TenantType = "fileDownload",
-                        Content = $"文件打包完成，下载地址为http://blogs.xxgtalk.cn"
+                        Content = string.IsNullOrEmpty(input.Content)?$"文件打包完成，下载地址为http://blogs.xxgtalk.cn": input.Content
                     }
                 });
             });

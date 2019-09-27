@@ -39,9 +39,17 @@ namespace CTS.Signalr.Client.Dtos
     public class SendToConnects
     {
         /// <summary>
-        /// 连接Id 多个以,隔开
+        /// 用户Id
         /// </summary>
-        public string Connects { set; get; }
+        public string UserId { set; get; }
+        /// <summary>
+        /// 连接Id
+        /// </summary>
+        public string ConnectionId { set; get; }
+        /// <summary>
+        /// 是否排除指定连接,当且仅当UserId有值的情况才有效
+        /// </summary>
+        public bool ExcludeConnectId { set; get; }
         public virtual object NotifyObj { set; get; }
     }
 }

@@ -1,9 +1,6 @@
-﻿using MessagePack;
-
-namespace CTS.Signalr.Server.Dtos
+﻿namespace CTS.Signalr.Client.Dtos
 {
-    [MessagePackObject(keyAsPropertyName: true)]
-    public class NotifyConnectsData
+    public class SendNotifyConnectsInput
     {
         /// <summary>
         /// 用户Id
@@ -17,6 +14,10 @@ namespace CTS.Signalr.Server.Dtos
         /// 是否排除指定连接,当且仅当UserId有值的情况才有效
         /// </summary>
         public bool ExcludeConnectId { set; get; }
-        public virtual object NotifyObj { set; get; }
+
+        /// <summary>
+        ///  内容
+        /// </summary>
+        public string Content { set;get;}
     }
 }

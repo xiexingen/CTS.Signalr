@@ -58,8 +58,22 @@ namespace CTS.Signalr.Server.Controllers
         public async Task PostConnects(NotifyConnectsData input) 
         {
             _logger.LogDebug($"post:{JsonConvert.SerializeObject(input)}");
+            List<string> connectionIds= null;
+            if (!string.IsNullOrWhiteSpace(input.UserId)&&input.ExcludeConnectId)
+            {
+                var userConnections = await _redis.GetConnectsByUserAsync(input.UserId);
+                connectionIds = userConnections.Where(m=>!m.Equals(input.ConnectionId)).ToList();
+            }
+            else
+            {
+                connectionIds = new List<string>()
+                {
+                    input.ConnectionId
+                };
+            }
+
             input.NotifyObj = JsonConvert.SerializeObject(input.NotifyObj);
-            await _notifyHub.Clients.Clients(input.Connects.Split(',')).OnNotify(input.NotifyObj);
+            await _notifyHub.Clients.Clients(connectionIds).OnNotify(input.NotifyObj);
         }
 
 

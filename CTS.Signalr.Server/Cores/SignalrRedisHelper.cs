@@ -115,12 +115,24 @@ namespace CTS.Signalr.Server.Cores
         }
 
         /// <summary>
-        /// 清空Redis库
+        /// 清空redis缓存中的用户和组
         /// </summary>
         /// <returns></returns>
-        public async Task FlushDatabaseAsync()
+        public async Task ClearUserAndGroup()
         {
-            await GetServer().FlushDatabaseAsync(_appSetting.Value.RedisCache.DatabaseId);
+            // await GetServer().FlushDatabaseAsync(_appSetting.Value.RedisCache.DatabaseId);
+
+            var userKeys=GetServer().Keys(_appSetting.Value.RedisCache.DatabaseId, pattern: $"{PREFIXUSER}*", int.MaxValue);
+            foreach (var key in userKeys)
+            {
+                await GetDatabase().KeyDeleteAsync(key);
+            }
+
+            var groupKeys= GetServer().Keys(_appSetting.Value.RedisCache.DatabaseId, pattern: $"{PREFIXGROUP}*", int.MaxValue);
+            foreach (var key in groupKeys)
+            {
+                await GetDatabase().KeyDeleteAsync(key);
+            }
         }
 
         //public async Task RemoveUserForGroupAsync(string group, string userId)
